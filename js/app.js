@@ -77,6 +77,39 @@ let S=null,TOKEN=null,CUR='dashboard',Q=[],busy=false,pend=null,needResync=false
 const FILT={q:'',j:'ALL'}, A={}, F={}, SUB={}, IN={}, P={};
 const isO=()=>S.me.role==='OWNER';
 const uname=id=>{const u=(S.users||[]).find(x=>x.userId===id);return u?u.nama:id};
+const getUserObj=idOrObj=>{
+  if(!idOrObj)return null;
+  if(typeof idOrObj==='object')return idOrObj;
+  if(S&&S.me&&S.me.userId===idOrObj)return S.me;
+  return (S&&S.users||[]).find(x=>x.userId===idOrObj)||{userId:idOrObj,nama:idOrObj,role:'KARYAWAN'};
+};
+const getStoredPhoto=uid=>uid?LS.g('pos_av_'+uid)||'':'';
+function uAvatar(userOrId,size){
+  const u=getUserObj(userOrId);
+  const uid=u?u.userId:'';
+  const name=u?(u.nama||u.username||'User'):'User';
+  const ini=name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'U';
+  const isOwner=u&&u.role==='OWNER';
+  const photo=(u&&u.foto)||getStoredPhoto(uid);
+  const szClass=size?' '+size:'';
+  const roleClass=isOwner?' owner':' karyawan';
+  if(photo){
+    return '<div class="av'+szClass+roleClass+'" title="'+esc(name)+' ('+(isOwner?'Owner':'Kasir')+')"><img src="'+esc(photo)+'" alt="'+esc(name)+'"></div>';
+  }
+  return '<div class="av'+szClass+roleClass+'" title="'+esc(name)+' ('+(isOwner?'Owner':'Kasir')+')"><span>'+esc(ini)+'</span></div>';
+}
+function uPill(userOrId){
+  const u=getUserObj(userOrId);
+  const name=u?(u.nama||u.username||'User'):'User';
+  const isOwner=u&&u.role==='OWNER';
+  return '<span class="u-pill">'+uAvatar(u,'xs')+'<span>'+esc(name)+'</span>'+(isOwner?'<span class="tag gold" style="font-size:9px;padding:0 3px">Owner</span>':'')+'</span>';
+}
+function uBadge(userOrId,showRole){
+  const u=getUserObj(userOrId);
+  const name=u?(u.nama||u.username||'User'):'User';
+  const isOwner=u&&u.role==='OWNER';
+  return '<div class="u-badge">'+uAvatar(u,'sm')+'<span class="nm"><b>'+esc(name)+'</b>'+(showRole?'<small style="display:block;color:var(--mut)">'+(isOwner?'Owner / Superadmin':'Kasir')+'</small>':'')+'</span></div>';
+}
 const live=t=>t.status==='AKTIF'||t.status==='DIAJUKAN_BATAL';
 const isJual=t=>t.jenis==='PENJUALAN'||t.jenis==='JASA';
 const isOut=t=>t.jenis==='BUYBACK'||t.jenis==='PENGELUARAN_OPS';
@@ -187,19 +220,26 @@ const BN={O:['dashboard','kasir','stok','absensi','menu'],K:['dashboard','kasir'
 function label(id){if(id==='menu')return 'Menu';const m=MENU.find(x=>x[0]===id);return m?(id==='absensi'&&isO()?'Absensi Karyawan':m[1]):'';}
 function chrome(){
   if(!S||!$('#sidebar'))return;
-  const n=pending().length, o=isO(), ini=S.me.nama.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const n=pending().length, o=isO();
   $('#sidebar').innerHTML='<div class="brand"><div class="logo">'+ic('gem','l')+'</div><div><b>'+esc(S.setting.namaToko.replace('Toko Emas & Perak ','Toko '))+'</b><small>EMAS &amp; PERAK POS</small></div></div>'+
+   '<div style="background:rgba(255,255,255,.05);border-radius:14px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid rgba(255,255,255,.08)" data-a="myphoto" title="Klik untuk ubah foto profil">'+
+     uAvatar(S.me,'sm')+
+     '<div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px">'+esc(S.me.nama)+'</b><small style="color:#a1a1aa">'+(o?'Owner / Superadmin':'Kasir / Karyawan')+'</small></div>'+
+     ic('camera','s')+
+   '</div>'+
    '<div class="inp" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:0;color:#a1a1aa;min-height:44px;border-radius:999px">'+ic('search','s')+'<input data-in="gs" placeholder="Cari transaksi / nota…" style="background:none;border:0;color:#fff;outline:0;width:100%"></div>'+
    '<nav class="nav" aria-label="Menu utama">'+allowed().map(m=>'<button class="nv'+(m[0]===CUR?' on':'')+'" data-a="go" data-v="'+m[0]+'">'+ic(m[3])+'<span>'+esc(m[0]==='absensi'&&o?'Absensi GPS Karyawan':m[1])+'</span>'+(m[0]==='approval'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>').join('')+'</nav>'+
    '<div class="sbf"><div class="sync"><i></i><span>Tersinkron</span></div><button class="nv" data-a="logout">'+ic('logout')+'<span>Keluar</span></button></div>';
   const hr=+nowWIT().slice(11,13);
   $('#topbar').innerHTML='<div class="ttl"><b id="tt-t">'+esc(label(CUR))+'</b><small>'+esc(S.setting.namaToko)+' • Nabire</small></div>'+
    '<div class="chips desk"><span class="chip"><i style="width:8px;height:8px;border-radius:50%;background:var(--ok)"></i>Toko Buka • '+(hr<13?'Shift Pagi':'Shift Siang')+'</span><span class="chip gold">'+ic('up','s')+' Spot Emas '+rp(S.setting.spotEmas)+'/gr</span><span class="pill syncchip ok">Sheets Sync</span></div>'+
+   '<button class="btn sm pri" data-a="trxnew" data-v="PENJUALAN" style="display:inline-flex;gap:6px;align-items:center;font-weight:700;box-shadow:0 4px 14px -3px rgba(245,179,1,.65)" title="Akses Cepat Transaksi Baru">'+ic('plus','s')+' <span class="desk">Transaksi Baru</span></button>'+
    '<button class="ibtn" data-a="bell" aria-label="Notifikasi">'+ic('bell')+(n?'<span class="dot">'+n+'</span>':'')+'</button>'+
-   '<div class="me"><div class="nm"><b>'+esc(S.me.nama)+'</b><small>'+(o?'Owner / Superadmin':'Kasir')+'</small></div><div class="av">'+esc(ini)+'</div></div>';
+   '<div class="me" data-a="myphoto" style="cursor:pointer" title="Klik untuk ubah foto profil"><div class="nm"><b>'+esc(S.me.nama)+'</b><small>'+(o?'Owner / Superadmin':'Kasir')+'</small></div>'+uAvatar(S.me)+'</div>';
   const bn=BN[o?'O':'K'];
   $('#bnav').innerHTML=bn.map(id=>{const m=MENU.find(x=>x[0]===id),on=id===CUR||(id==='menu'&&!bn.includes(CUR));return '<button class="'+(on?'on':'')+'" data-a="go" data-v="'+id+'" aria-label="'+esc(label(id))+'">'+ic(m?m[3]:'menu')+'<span>'+(m?m[2]:'Menu')+'</span>'+(id==='menu'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>'}).join('');
   setSync();
+  hydrateIcons();
 }
 function go(p){
   if(!S)return;
@@ -291,7 +331,7 @@ function trxRow(t){
   const m={PENJUALAN:['gem',''],BUYBACK:['undo','bad'],JASA:['tool',''],PENGELUARAN_OPS:['wallet','bad']}[t.jenis]||['gem',''];
   const st={DIAJUKAN_BATAL:['warn','Ajukan batal'],DIBATALKAN:['bad','Dibatalkan'],PENDING_APPROVAL:['warn','Menunggu Owner']}[t.status];
   const d=t.waktu.slice(0,10)===today()?jam(t.waktu):tgl(t.waktu)+' '+jam(t.waktu);
-  return '<button class="tr" data-a="trx" data-v="'+esc(t.transaksiId)+'"><span class="ico '+m[1]+'">'+ic(m[0])+'</span><span class="tm"><b>'+esc(t.kategori||jenisLbl[t.jenis])+'</b><small>'+d+' · '+(t.berat?gr(t.berat)+' · ':'')+'<span class="tag">'+esc(t.metodeBayar)+'</span>'+(st?'<span class="tag '+st[0]+'">'+st[1]+'</span>':'')+'</small></span><span class="ta '+(isOut(t)?'neg':'')+'"><b>'+(isOut(t)?'-':'')+rp(t.nominal)+'</b><small>#'+esc(String(t.transaksiId).replace(/^TRX-\d{4}/,''))+'</small></span></button>';
+  return '<button class="tr" data-a="trx" data-v="'+esc(t.transaksiId)+'"><span class="ico '+m[1]+'">'+ic(m[0])+'</span><span class="tm"><b>'+esc(t.kategori||jenisLbl[t.jenis])+'</b><small>'+d+' · '+uPill(t.operatorId)+' · '+(t.berat?gr(t.berat)+' · ':'')+'<span class="tag">'+esc(t.metodeBayar)+'</span>'+(st?'<span class="tag '+st[0]+'">'+st[1]+'</span>':'')+'</small></span><span class="ta '+(isOut(t)?'neg':'')+'"><b>'+(isOut(t)?'-':'')+rp(t.nominal)+'</b><small>#'+esc(String(t.transaksiId).replace(/^TRX-\d{4}/,''))+'</small></span></button>';
 }
 function apItem(a,act){
   const lb={PEMBATALAN_TRX:['bad','Batal Nota'],PENGELUARAN_OPS_BESAR:['warn','Butuh Otorisasi'],IZIN:['gold','Izin']}[a.jenis]||['','Pengajuan'];
@@ -323,7 +363,7 @@ function komposisi(){
 /* ============ HALAMAN: DASHBOARD ============ */
 P.dashboard=function(){
   const o=isO(),st=stats(!o),set=S.setting;
-  let h='<div class="ph"><div><h1>Selamat Datang Kembali, '+esc(S.me.nama)+'!</h1><p>'+(o?'Pantau arus kas, gramasi emas, saldo brankas, dan pergerakan transaksi toko hari ini.':'Ringkasan shift Anda hari ini.')+'</p></div><div class="chips"><span class="chip">'+ic('cal','s')+' '+tgl(today())+'</span><span class="pill syncchip ok">Sheets Sync</span>'+(o?'<button class="btn sm dk" data-a="harga">'+ic('scale','s')+' Atur Harga</button>':'')+'</div></div>';
+  let h='<div class="ph"><div style="display:flex;align-items:center;gap:14px">'+uAvatar(S.me,'lg')+'<div><h1>Selamat Datang Kembali, '+esc(S.me.nama)+'!</h1><p>'+(o?'Pantau arus kas, gramasi emas, saldo brankas, dan pergerakan transaksi toko hari ini.':'Ringkasan shift Anda hari ini.')+'</p></div></div><div class="chips"><button class="btn sm pri" data-a="trxnew" data-v="PENJUALAN">'+ic('plus','s')+' Transaksi Baru</button><span class="chip">'+ic('cal','s')+' '+tgl(today())+'</span><span class="pill syncchip ok">Sheets Sync</span>'+(o?'<button class="btn sm dk" data-a="harga">'+ic('scale','s')+' Atur Harga</button>':'')+'</div></div>';
   const bankTot=o?Object.keys(S.saldo.bank||{}).reduce((s,k)=>s+S.saldo.bank[k],0):0;
   h+='<div class="grid g4">'+
    kpi(o?'Total Omzet Hari Ini':'Omzet Saya Hari Ini',rp(st.om),dpill(st.delta)+' <small>vs kemarin</small>','coin','gold')+
@@ -331,7 +371,8 @@ P.dashboard=function(){
    kpi('Saldo Kas Laci (POS)',rp(S.saldo.kas),'<span class="pill ok">Siap Tutup Kas</span>','wallet')+
    (o?kpi('Saldo Brankas &amp; Bank',rp((S.saldo.brankas||0)+bankTot),'<small>Vault '+rpS(S.saldo.brankas)+' · Bank '+rpS(bankTot)+'</small>','lock'):kpi('Nota Saya Hari Ini',st.nota,'<small>transaksi penjualan &amp; jasa</small>','calc'))+'</div>';
   h+='<div class="card" style="margin:20px 0"><div class="hd"><h3>Aksi Cepat</h3><small>POS &amp; Operasional</small></div><div class="tiles">'+
-   '<button class="tile pri" data-a="go" data-v="kasir"><span class="ico">'+ic('calc')+'</span>Kasir POS</button>'+
+   '<button class="tile pri" data-a="trxnew" data-v="PENJUALAN"><span class="ico">'+ic('plus')+'</span>+ Transaksi Baru</button>'+
+   '<button class="tile" data-a="go" data-v="kasir"><span class="ico">'+ic('calc')+'</span>Kasir POS</button>'+
    (o?'<button class="tile" data-a="go" data-v="brankas"><span class="ico">'+ic('lock')+'</span>Brankas</button><button class="tile" data-a="go" data-v="laporan"><span class="ico">'+ic('chart')+'</span>Laporan</button>':'<button class="tile" data-a="go" data-v="absensi"><span class="ico">'+ic('pin')+'</span>Absen</button><button class="tile" data-a="go" data-v="absensi"><span class="ico">'+ic('cal')+'</span>Izin</button>')+
    '<button class="tile" data-a="tutup"><span class="ico">'+ic('clock')+'</span>Tutup Kas</button></div></div>';
   const rec=sortD(S.trx.filter(t=>o||t.operatorId===S.me.userId)).slice(0,6);
@@ -387,7 +428,7 @@ P.kas=function(){
   const o=isO(),rows=sortD(S.kas).slice(0,40);
   return '<div class="ph"><div><h1>Kas Laci &amp; Tutup Kas</h1><p>Saldo berjalan = saldo awal + kas masuk − kas keluar.</p></div><div class="chips"><button class="btn dk" data-a="tutup">'+ic('clock','s')+' Tutup Kas Harian</button>'+(o?'<button class="btn" data-a="brk" data-v="SETOR">'+ic('lock','s')+' Setor ke Brankas</button>':'')+'</div></div>'+
    '<div class="grid g2" style="margin-bottom:20px">'+kpi('Saldo Kas Laci Sistem',rp(S.saldo.kas),'<span class="pill ok">Berjalan</span>','wallet','gold')+kpi('Tutup Kas Terakhir',S.tutup.length?rp(S.tutup[S.tutup.length-1].saldoFisik):'-',S.tutup.length?'<span class="pill '+(S.tutup[S.tutup.length-1].selisih===0?'ok':'warn')+'">Selisih '+rp(S.tutup[S.tutup.length-1].selisih)+'</span>':'<small>belum ada</small>','clock')+'</div>'+
-   '<div class="grid dash2"><div class="card"><div class="hd"><h3>Mutasi Kas Laci</h3></div>'+(rows.length?rows.map(m=>'<div class="tr"><span class="ico '+(m.arah==='MASUK'?'ok':'bad')+'">'+ic(m.arah==='MASUK'?'down':'up')+'</span><span class="tm"><b>'+esc(String(m.sumber).replace(/_/g,' '))+'</b><small>'+tgl(m.waktu)+' '+jam(m.waktu)+' · saldo '+rpS(m.saldo)+'</small></span><span class="ta '+(m.arah==='KELUAR'?'neg':'')+'"><b>'+(m.arah==='KELUAR'?'-':'+')+rp(m.nominal)+'</b></span></div>').join(''):empty('Belum ada mutasi.'))+'</div>'+
+   '<div class="grid dash2"><div class="card"><div class="hd"><h3>Mutasi Kas Laci</h3></div>'+(rows.length?rows.map(m=>'<div class="tr"><span class="ico '+(m.arah==='MASUK'?'ok':'bad')+'">'+ic(m.arah==='MASUK'?'down':'up')+'</span><span class="tm"><b>'+esc(String(m.sumber).replace(/_/g,' '))+'</b><small>'+tgl(m.waktu)+' '+jam(m.waktu)+' · '+uPill(m.operatorId)+' · saldo '+rpS(m.saldo)+'</small></span><span class="ta '+(m.arah==='KELUAR'?'neg':'')+'"><b>'+(m.arah==='KELUAR'?'-':'+')+rp(m.nominal)+'</b></span></div>').join(''):empty('Belum ada mutasi.'))+'</div>'+
    '<div class="card"><div class="hd"><h3>Riwayat Tutup Kas</h3></div>'+(S.tutup.length?sortD(S.tutup.map(x=>Object.assign({},x))).slice(0,12).map(x=>'<div class="tr"><span class="ico '+(x.selisih===0?'ok':'gold')+'">'+ic(x.selisih===0?'check':'alert')+'</span><span class="tm"><b>'+tgl(x.tanggal)+'</b><small>Sistem '+rpS(x.saldoSistem)+' · Fisik '+rpS(x.saldoFisik)+'</small></span><span class="ta '+(x.selisih<0?'neg':'')+'"><b>'+(x.selisih>0?'+':'')+rp(x.selisih)+'</b></span></div>').join(''):empty('Belum ada.'))+'</div></div>';
 };
 F.tutup=function(){
@@ -403,7 +444,7 @@ P.brankas=function(){
   const rows=sortD(S.brankas).slice(0,40);
   return '<div class="ph"><div><h1>Saldo Brankas (Vault)</h1><p>Transfer internal antara kas laci dan brankas.</p></div><div class="chips"><button class="btn pri" data-a="brk" data-v="SETOR">'+ic('down','s')+' Setor dari Kas</button><button class="btn" data-a="brk" data-v="TARIK">'+ic('up','s')+' Tarik ke Kas</button></div></div>'+
    '<div class="grid g2" style="margin-bottom:20px">'+kpi('Saldo Brankas Utama',rp(S.saldo.brankas),'<span class="pill ok">Terkunci</span>','lock','gold')+kpi('Saldo Kas Laci',rp(S.saldo.kas),'<small>sumber setoran</small>','wallet')+'</div>'+
-   '<div class="card"><div class="hd"><h3>Mutasi Brankas</h3></div>'+(rows.length?rows.map(m=>'<div class="tr"><span class="ico '+(m.arah==='SETOR'?'ok':'bad')+'">'+ic(m.arah==='SETOR'?'down':'up')+'</span><span class="tm"><b>'+(m.arah==='SETOR'?'Setor dari kas laci':'Tarik ke kas laci')+'</b><small>'+tgl(m.waktu)+' '+jam(m.waktu)+' · '+esc(uname(m.operatorId))+(m.catatan?' · '+esc(m.catatan):'')+'</small></span><span class="ta '+(m.arah==='TARIK'?'neg':'')+'"><b>'+(m.arah==='TARIK'?'-':'+')+rp(m.nominal)+'</b></span></div>').join(''):empty('Belum ada mutasi. Saldo awal diatur di Pengaturan.'))+'</div>';
+   '<div class="card"><div class="hd"><h3>Mutasi Brankas</h3></div>'+(rows.length?rows.map(m=>'<div class="tr"><span class="ico '+(m.arah==='SETOR'?'ok':'bad')+'">'+ic(m.arah==='SETOR'?'down':'up')+'</span><span class="tm"><b>'+(m.arah==='SETOR'?'Setor dari kas laci':'Tarik ke kas laci')+'</b><small>'+tgl(m.waktu)+' '+jam(m.waktu)+' · '+uPill(m.operatorId)+(m.catatan?' · '+esc(m.catatan):'')+'</small></span><span class="ta '+(m.arah==='TARIK'?'neg':'')+'"><b>'+(m.arah==='TARIK'?'-':'+')+rp(m.nominal)+'</b></span></div>').join(''):empty('Belum ada mutasi. Saldo awal diatur di Pengaturan.'))+'</div>';
 };
 A.brk=v=>F.brankas(v);
 F.brankas=function(arah){
@@ -446,8 +487,8 @@ P.absensi=function(){
     const rows=S.absensi.slice().sort((a,b)=>String(b.jamMasuk).localeCompare(String(a.jamMasuk))).slice(0,60),iz=S.izin.slice().reverse().slice(0,15);
     return '<div class="ph"><div><h1>Absensi GPS Karyawan</h1><p>Rekap selfie + lokasi. Pengajuan izin diproses di Pusat Persetujuan.</p></div></div>'+
      '<div class="card" style="margin-bottom:20px"><div class="hd"><h3>Rekap Absensi</h3></div><div class="tbw"><table><thead><tr><th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Status</th><th class="r">Jarak</th><th>Selfie</th></tr></thead><tbody>'+
-     (rows.map(a=>'<tr><td>'+tgl(a.tanggal)+'</td><td><b>'+esc(uname(a.userId))+'</b></td><td>'+jam(a.jamMasuk)+'</td><td>'+(jam(a.jamPulang)||'-')+'</td><td><span class="tag '+(a.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(a.statusMasuk).replace('_',' ')+'</span></td><td class="r">'+(a.jarakMeter!==''?a.jarakMeter+' m':'-')+'</td><td>'+(a.fotoSelfieMasuk?'<a href="'+esc(a.fotoSelfieMasuk)+'" target="_blank" rel="noopener">Lihat</a>':'-')+'</td></tr>').join('')||'<tr><td colspan="7">'+empty('Belum ada absensi.')+'</td></tr>')+'</tbody></table></div></div>'+
-     '<div class="card"><div class="hd"><h3>Pengajuan Izin / Sakit / Cuti</h3></div>'+(iz.length?iz.map(i=>'<div class="tr"><span class="ico gold">'+ic('cal')+'</span><span class="tm"><b>'+esc(uname(i.userId))+' · '+i.jenis+'</b><small>'+tgl(i.tanggalMulai)+(i.tanggalSelesai!==i.tanggalMulai?' – '+tgl(i.tanggalSelesai):'')+' · '+esc(i.alasan)+'</small></span><span class="tag '+(i.status==='DISETUJUI'?'ok':i.status==='DITOLAK'?'bad':'warn')+'">'+i.status+'</span></div>').join(''):empty('Belum ada pengajuan.'))+'</div>';
+     (rows.map(a=>'<tr><td>'+tgl(a.tanggal)+'</td><td>'+uBadge(a.userId)+'</td><td>'+jam(a.jamMasuk)+'</td><td>'+(jam(a.jamPulang)||'-')+'</td><td><span class="tag '+(a.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(a.statusMasuk).replace('_',' ')+'</span></td><td class="r">'+(a.jarakMeter!==''?a.jarakMeter+' m':'-')+'</td><td>'+(a.fotoSelfieMasuk?'<a href="'+esc(a.fotoSelfieMasuk)+'" target="_blank" rel="noopener">Lihat</a>':'-')+'</td></tr>').join('')||'<tr><td colspan="7">'+empty('Belum ada absensi.')+'</td></tr>')+'</tbody></table></div></div>'+
+     '<div class="card"><div class="hd"><h3>Pengajuan Izin / Sakit / Cuti</h3></div>'+(iz.length?iz.map(i=>'<div class="tr"><span class="ico gold">'+ic('cal')+'</span><span class="tm"><b>'+uBadge(i.userId)+' · '+i.jenis+'</b><small>'+tgl(i.tanggalMulai)+(i.tanggalSelesai!==i.tanggalMulai?' – '+tgl(i.tanggalSelesai):'')+' · '+esc(i.alasan)+'</small></span><span class="tag '+(i.status==='DISETUJUI'?'ok':i.status==='DITOLAK'?'bad':'warn')+'">'+i.status+'</span></div>').join(''):empty('Belum ada pengajuan.'))+'</div>';
   }
   const me=S.absensi.find(a=>a.userId===S.me.userId&&a.tanggal===td),hist=S.absensi.filter(a=>a.userId===S.me.userId).slice().reverse().slice(0,14),iz=S.izin.slice().reverse().slice(0,10);
   return '<div class="ph"><div><h1>Absensi &amp; Izin</h1><p>Absen wajib selfie dan berada di radius toko ('+S.setting.radiusAbsensi+' m).</p></div></div>'+
@@ -684,9 +725,33 @@ P.pengaturan=function(){
    [['Nama toko',s.namaToko],['Alamat',s.alamatToko],['Telepon',s.teleponToko],['Jam masuk standar',s.jamMasuk],['Koordinat toko',s.latitude+', '+s.longitude],['Radius absensi',s.radiusAbsensi+' m'],['Batas approval pengeluaran',rp(s.limitApproval)],['Email notifikasi Owner',s.ownerEmail||'(email akun Owner)']].map(x=>'<div class="tr" style="min-height:44px"><span class="tm"><small>'+x[0]+'</small><b style="white-space:normal">'+esc(x[1]||'-')+'</b></span></div>').join('')+'</div>'+
    '<div class="grid" style="gap:20px"><div class="card"><div class="hd"><h3>Harga &amp; Rekening</h3><div class="chips"><button class="btn sm" data-a="harga">Harga</button><button class="btn sm" data-a="rekedit">Rekening</button></div></div><div class="tr"><span class="tm"><small>Kadar 700 / gram</small><b>'+rp(s.hargaKadar700)+'</b></span><span class="tm"><small>Spot 24K</small><b>'+rp(s.spotEmas)+'</b></span></div>'+((s.rekening||[]).map(r=>'<div class="tr"><span class="ico gold">'+ic('bank')+'</span><span class="tm"><b>'+esc(r.nama)+'</b><small>'+esc(r.noRek||'-')+'</small></span></div>').join('')||empty('Belum ada rekening.'))+'</div>'+
    '<div class="card"><div class="hd"><h3>Keamanan</h3></div><button class="btn blk" data-a="pass">'+ic('key','s')+' Ubah Kata Sandi Saya</button><small style="display:block;margin-top:10px">Reset password Super Admin &amp; reset data dummy dilakukan dari backend (editor Apps Script): <b>resetPasswordSuperAdmin()</b> dan <b>resetDataDummy()</b>.</small></div></div></div>'+
-   '<div class="card" style="margin-top:20px"><div class="hd"><h3>Kelola Karyawan</h3><button class="btn sm pri" data-a="useradd">'+ic('plus','s')+' Tambah</button></div>'+us.map(u=>'<div class="tr"><span class="ico '+(u.role==='OWNER'?'gold':'')+'">'+ic(u.role==='OWNER'?'shield':'user')+'</span><span class="tm"><b>'+esc(u.nama)+'</b><small>'+esc(u.username)+' · '+u.role+' · <span class="tag '+(u.status==='AKTIF'?'ok':'bad')+'">'+u.status+'</span></small></span>'+(u.role==='OWNER'?'':'<button class="btn sm" data-a="useredit" data-v="'+u.userId+'">Ubah</button><button class="btn sm" data-a="userpin" data-v="'+u.userId+'">Reset PIN</button>')+'</div>').join('')+'</div>';
+   '<div class="card" style="margin-top:20px"><div class="hd"><div><h3>Kelola Karyawan &amp; Hak Akses</h3><small>Foto profil, status, dan PIN login</small></div><button class="btn sm pri" data-a="useradd">'+ic('plus','s')+' Tambah Karyawan</button></div>'+us.map(u=>'<div class="tr">'+uAvatar(u,'sm')+'<span class="tm"><b>'+esc(u.nama)+'</b><small>'+esc(u.username)+' · <span class="tag '+(u.role==='OWNER'?'gold':'')+'">'+u.role+'</span> · <span class="tag '+(u.status==='AKTIF'?'ok':'bad')+'">'+u.status+'</span></small></span><div style="display:flex;gap:6px"><button class="btn sm gh" data-a="myphoto" data-v="'+u.userId+'" title="Ubah foto">'+ic('camera','s')+' Foto</button>'+(u.role==='OWNER'?'':'<button class="btn sm" data-a="useredit" data-v="'+u.userId+'">Ubah</button><button class="btn sm" data-a="userpin" data-v="'+u.userId+'">Reset PIN</button>')+'</div></div>').join('')+'</div>';
 };
 A.profil=()=>F.profil();A.rekedit=()=>F.rekening();A.pass=()=>F.pass();A.useradd=()=>F.user();A.useredit=v=>F.user(v);A.userpin=v=>F.pin(v);
+A.myphoto=v=>F.photo(v);A.avchoose=v=>{const i=$('#av-file-input');if(i){i.dataset.uid=v||'';i.value='';i.click()}};
+A.avdel=v=>{const uid=v||(S&&S.me&&S.me.userId),u=getUserObj(uid);if(u)u.foto='';LS.d('pos_av_'+uid);if(S&&S.me&&S.me.userId===uid)S.me.foto='';mut('userSimpan',{userId:uid,foto:''});closeModal();toast('Foto profil dihapus','ok');chrome();render()};
+IN.avfile=(v,el)=>{const f=el.files&&el.files[0];if(!f)return;const uid=el.dataset.uid||(S&&S.me&&S.me.userId);compress(f).then(d=>{const u=getUserObj(uid);if(u)u.foto=d;LS.s('pos_av_'+uid,d);if(S&&S.me&&S.me.userId===uid)S.me.foto=d;mut('userSimpan',{userId:uid,foto:d});closeModal();toast('Foto profil berhasil disimpan!','ok');chrome();render()}).catch(()=>toast('Gagal memproses foto','err'))};
+F.photo=function(uid){
+  const targetId=uid||(S&&S.me&&S.me.userId),u=getUserObj(targetId);if(!u)return;
+  const currPhoto=(u&&u.foto)||getStoredPhoto(targetId);
+  modal('Foto Profil '+esc(u.nama),
+    '<div class="grid" style="gap:16px;text-align:center">'+
+      '<div style="display:flex;justify-content:center;margin-top:6px">'+
+        (currPhoto
+          ? '<img id="av-modal-preview" src="'+esc(currPhoto)+'" style="width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:var(--sh2)">'
+          : '<div id="av-modal-preview" class="av lg '+(u.role==='OWNER'?'owner':'karyawan')+'" style="width:110px;height:110px;font-size:36px;margin:0 auto;border:3px solid var(--gold);box-shadow:var(--sh2)"><span>'+esc((u.nama||'U').slice(0,2).toUpperCase())+'</span></div>')+
+      '</div>'+
+      '<div><b>'+esc(u.nama)+'</b><br><small style="color:var(--mut)">'+(u.role==='OWNER'?'Owner / Superadmin':'Karyawan / Kasir')+' • @'+esc(u.username||targetId)+'</small></div>'+
+      '<div class="row2">'+
+        '<button type="button" class="btn pri" data-a="avchoose" data-v="'+esc(targetId)+'">'+ic('camera','s')+' Ambil / Pilih Foto</button>'+
+        (currPhoto
+          ? '<button type="button" class="btn bad" data-a="avdel" data-v="'+esc(targetId)+'">'+ic('x','s')+' Hapus Foto</button>'
+          : '<button type="button" class="btn gh" data-a="close">Tutup</button>')+
+      '</div>'+
+      '<input type="file" id="av-file-input" accept="image/*" class="hidden" data-in="avfile" data-uid="'+esc(targetId)+'">'+
+      '<small style="color:var(--mut)">Foto otomatis dikompresi agar ringan dan tampil di seluruh nota, riwayat, absensi, dan topbar.</small>'+
+    '</div>');
+};
 A.geo=()=>{if(!navigator.geolocation){toast('GPS tidak tersedia','err');return}navigator.geolocation.getCurrentPosition(p=>{const a=$('#f_latitude'),b=$('#f_longitude');if(a&&b){a.value=p.coords.latitude.toFixed(6);b.value=p.coords.longitude.toFixed(6);toast('Koordinat diisi dari lokasi Anda','ok')}},()=>toast('Lokasi tidak diizinkan','err'),{enableHighAccuracy:true,timeout:12000})};
 F.profil=function(){
   const s=S.setting,fl=[{k:'namaToko',l:'Nama toko',req:1},{k:'alamatToko',l:'Alamat'},{k:'teleponToko',l:'Telepon / WA toko'},{k:'jamMasuk',l:'Jam masuk standar',t:'time',half:1},{k:'radiusAbsensi',l:'Radius absensi (m)',t:'num',half:1},{k:'latitude',l:'Latitude',half:1},{k:'longitude',l:'Longitude',half:1},{k:'limitApproval',l:'Batas pengeluaran butuh approval',t:'rp'},{k:'saldoAwalKas',l:'Saldo awal kas laci',t:'rp',h:'Hanya berpengaruh bila belum ada mutasi kas.'},{k:'saldoAwalBrankas',l:'Saldo awal brankas',t:'rp'},{k:'ownerEmail',l:'Email notifikasi Owner',t:'email'}].map(f=>Object.assign(f,{v:s[f.k]}));
@@ -771,6 +836,7 @@ function getBackendMetrics(){
 P.backend=function(){
   const m=getBackendMetrics();
   const gasUrl=(window.APP_CONFIG&&window.APP_CONFIG.GAS_URL)||'-';
+  const scriptId=(window.APP_CONFIG&&window.APP_CONFIG.SCRIPT_ID)||'1QfCDHy6_eWMn1N7hcBaVPqT-kHGp8fXWFumHHNb6GKdwGZ_UbYxN1Dzf';
   const maskedGas=gasUrl.length>40?gasUrl.slice(0,32)+'••••••••'+gasUrl.slice(-14):gasUrl;
   const lastBk=LS.g('pos_last_backup')||'Belum ada riwayat backup lokal';
 
@@ -816,15 +882,16 @@ P.backend=function(){
 
       '<div class="grid" style="gap:20px;align-content:start">'+
         '<div class="card">'+
-          '<div class="hd"><h3>Rincian Google Apps Script</h3><button class="btn sm" data-a="bkcopy" data-v="gasurl">'+ic('file','s')+' Salin URL</button></div>'+
+          '<div class="hd"><div><h3>Rincian Google Apps Script</h3><small>Integrasi backend &amp; script Google</small></div><div class="chips"><button class="btn sm" data-a="bkcopy" data-v="gasurl">'+ic('file','s')+' Salin URL</button><button class="btn sm" data-a="bkcopy" data-v="scriptid">'+ic('file','s')+' Salin Script ID</button></div></div>'+
+          '<div class="tr"><span class="tm"><small>Script ID Proyek Google</small><b style="word-break:break-all;font-size:12px;font-family:monospace;color:var(--gold-d)">'+esc(scriptId)+'</b></span></div>'+
           '<div class="tr"><span class="tm"><small>Web App Endpoint (/exec)</small><b style="word-break:break-all;font-size:12px;font-family:monospace" id="bk-gas-display">'+esc(maskedGas)+'</b></span></div>'+
           '<div class="tr"><span class="tm"><small>Metode Komunikasi</small><b>POST JSON (text/plain CORS-Free)</b></span></div>'+
           '<div class="tr"><span class="tm"><small>Proyek Apps Script</small><b>App_PermataPOS_Nabire</b></span></div>'+
           '<div class="tr"><span class="tm"><small>Folder Google Drive</small><b>App_PermataPOS_Nabire</b></span></div>'+
           '<div class="tr"><span class="tm"><small>Zona Waktu Server</small><b>Asia/Jayapura (WIT, Nabire)</b></span></div>'+
           '<div class="tr"><span class="tm"><small>Masa Berlaku Token Sesi</small><b>12 Jam (Auto-refresh)</b></span></div>'+
-          '<div style="margin-top:14px;display:flex;gap:8px">'+
-            '<a class="btn sm gh" style="flex:1" href="https://script.google.com" target="_blank" rel="noopener">'+ic('cloud','s')+' Buka Editor GAS</a>'+
+          '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">'+
+            '<a class="btn sm pri" style="flex:1" href="https://script.google.com/d/'+esc(scriptId)+'/edit" target="_blank" rel="noopener">'+ic('cloud','s')+' Buka Proyek Apps Script Ini</a>'+
             '<a class="btn sm gh" style="flex:1" href="https://drive.google.com" target="_blank" rel="noopener">'+ic('file','s')+' Buka Google Drive</a>'+
           '</div>'+
         '</div>'+
@@ -938,7 +1005,8 @@ A.bkcsvkas=()=>{
 };
 
 A.bkcopy=v=>{
-  const text=v==='gasurl'?((window.APP_CONFIG&&window.APP_CONFIG.GAS_URL)||''):v;
+  const text=v==='gasurl'?((window.APP_CONFIG&&window.APP_CONFIG.GAS_URL)||''):
+             v==='scriptid'?((window.APP_CONFIG&&window.APP_CONFIG.SCRIPT_ID)||'1QfCDHy6_eWMn1N7hcBaVPqT-kHGp8fXWFumHHNb6GKdwGZ_UbYxN1Dzf'):v;
   if(navigator.clipboard&&navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(()=>toast('Berhasil disalin ke papan klip','ok'));
   }else{prompt('Salin teks berikut:',text)}
@@ -1044,8 +1112,13 @@ A.bkapply=()=>{
 
 /* ============ MENU (mobile) ============ */
 P.menu=function(){
-  return '<div class="ph"><div><h1>Menu</h1><p>'+esc(S.me.nama)+' · '+(isO()?'Owner / Superadmin':'Kasir')+'</p></div></div><div class="card">'+allowed().map(m=>'<button class="tr" data-a="go" data-v="'+m[0]+'"><span class="ico gold">'+ic(m[3])+'</span><span class="tm"><b>'+esc(label(m[0]))+'</b></span>'+ic('arrow','s')+'</button>').join('')+
-   '<button class="tr" data-a="pass"><span class="ico">'+ic('key')+'</span><span class="tm"><b>Ubah Kata Sandi</b></span></button><button class="tr" data-a="logout"><span class="ico bad">'+ic('logout')+'</span><span class="tm"><b>Keluar</b></span></button><div class="sync" style="background:var(--cv);color:var(--mut);margin-top:10px"><i></i><span>Tersinkron</span></div></div>';
+  return '<div class="ph"><div style="display:flex;align-items:center;gap:14px">'+uAvatar(S.me,'lg')+
+   '<div><h1>'+esc(S.me.nama)+'</h1><p>'+(isO()?'Owner / Superadmin':'Kasir / Karyawan')+'</p></div></div>'+
+   '<button class="btn sm gh" data-a="myphoto">'+ic('camera','s')+' Foto Profil</button></div>'+
+   '<div class="card">'+allowed().map(m=>'<button class="tr" data-a="go" data-v="'+m[0]+'"><span class="ico gold">'+ic(m[3])+'</span><span class="tm"><b>'+esc(label(m[0]))+'</b></span>'+ic('arrow','s')+'</button>').join('')+
+   '<button class="tr" data-a="myphoto"><span class="ico">'+ic('camera')+'</span><span class="tm"><b>Ubah Foto Profil Saya</b></span></button>'+
+   '<button class="tr" data-a="pass"><span class="ico">'+ic('key')+'</span><span class="tm"><b>Ubah Kata Sandi</b></span></button>'+
+   '<button class="tr" data-a="logout"><span class="ico bad">'+ic('logout')+'</span><span class="tm"><b>Keluar</b></span></button><div class="sync" style="background:var(--cv);color:var(--mut);margin-top:10px"><i></i><span>Tersinkron</span></div></div>';
 };
 
 /* ============ INIT ============ */
