@@ -3,12 +3,87 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="theme-color" content="#161618">
-<title>Permata Emas &amp; Perak POS</title>
+<title>Permata POS — Sistem Kasir &amp; Manajemen Toko Emas &amp; Perak Nabire</title>
+
+<!-- SEO Meta Tags -->
+<meta name="description" content="Sistem Kasir (POS) &amp; Manajemen Operasional Terintegrasi Toko Emas &amp; Perak Permata Nabire, Papua Tengah. Mengelola transaksi penjualan perhiasan emas/perak, buyback, timbangan gramasi, kas laci POS, brankas vault, absensi GPS karyawan, dan database Google Sheets otomatis.">
+<meta name="keywords" content="toko emas nabire, pos toko emas, kasir emas perak, permata pos nabire, aplikasi kasir perhiasan, buyback emas papua, pembukuan toko emas, kasir emas cloud, pos google sheets">
+<meta name="author" content="Toko Emas &amp; Perak Permata Nabire">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<link rel="canonical" href="https://dahnial.github.io/EMAS-POS/">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dahnial.github.io/EMAS-POS/">
+<meta property="og:site_name" content="Permata POS Nabire">
+<meta property="og:title" content="Permata POS — Sistem Kasir &amp; Manajemen Toko Emas &amp; Perak Nabire">
+<meta property="og:description" content="Aplikasi kasir &amp; pembukuan toko emas &amp; perak modern berbasis cloud Google Apps Script &amp; Google Sheets. Cepat, aman, dan responsif di smartphone &amp; desktop.">
+<meta property="og:image" content="https://dahnial.github.io/EMAS-POS/css/banner.png">
+<meta property="og:locale" content="id_ID">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://dahnial.github.io/EMAS-POS/">
+<meta name="twitter:title" content="Permata POS — Sistem Kasir Toko Emas &amp; Perak Nabire">
+<meta name="twitter:description" content="Manajemen kasir POS perhiasan emas/perak, gramasi, brankas, dan operasional toko terintegrasi.">
+<meta name="twitter:image" content="https://dahnial.github.io/EMAS-POS/css/banner.png">
+
+<!-- PWA & Mobile Web App Meta -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Permata POS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Permata POS">
+<meta name="format-detection" content="telephone=no">
+
+<!-- Favicon SVG Data URI -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23F5B301' d='M6 3h12l4 6-10 13L2 9Z'/%3E%3Cpath fill='%239a6f00' d='M11 3 8 9l4 13 4-13-3-6'/%3E%3Cpath stroke='%23ffffff' stroke-width='1.5' fill='none' d='M2 9h20'/%3E%3C/svg%3E">
+
+<!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- CSS Stylesheet -->
+<link rel="stylesheet" href="css/style.css?v=2.2">
+
+<!-- Schema.org Structured Data (JSON-LD) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "JewelryStore",
+      "@id": "https://dahnial.github.io/EMAS-POS/#store",
+      "name": "Toko Emas & Perak Permata",
+      "description": "Toko perhiasan emas dan perak terpercaya di Nabire, Papua Tengah. Melayani jual beli perhiasan kadar 375, 700, 750, 24K, dan perak 925/999.",
+      "url": "https://dahnial.github.io/EMAS-POS/",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Nabire",
+        "addressRegion": "Papua Tengah",
+        "addressCountry": "ID"
+      },
+      "currenciesAccepted": "IDR",
+      "paymentAccepted": "Cash, Bank Transfer, QRIS"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://dahnial.github.io/EMAS-POS/#app",
+      "name": "Permata POS",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All modern browsers (Desktop, Tablet, iOS, Android)",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "IDR"
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -53,8 +128,9 @@
   </div>
 </div>
 
-<!-- ============ APLIKASI (semua halaman dimuat sekali, navigasi = show/hide) ============ -->
+<!-- ============ APLIKASI (SPA - navigasi 0ms) ============ -->
 <div id="view-app" class="hidden">
+  <div id="sidebar-backdrop" class="sidebar-backdrop" data-a="sbclose"></div>
   <aside id="sidebar"></aside>
   <div class="shell">
     <header id="topbar"></header>
@@ -82,8 +158,8 @@
 <div id="toast-root" aria-live="polite"></div>
 <div id="print-area"></div>
 
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/app.js"></script>
+<script src="js/config.js?v=2.2"></script>
+<script src="js/api.js?v=2.2"></script>
+<script src="js/app.js?v=2.2"></script>
 </body>
 </html>

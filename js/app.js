@@ -231,11 +231,16 @@ function chrome(){
    '<nav class="nav" aria-label="Menu utama">'+allowed().map(m=>'<button class="nv'+(m[0]===CUR?' on':'')+'" data-a="go" data-v="'+m[0]+'">'+ic(m[3])+'<span>'+esc(m[0]==='absensi'&&o?'Absensi GPS Karyawan':m[1])+'</span>'+(m[0]==='approval'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>').join('')+'</nav>'+
    '<div class="sbf"><div class="sync"><i></i><span>Tersinkron</span></div><button class="nv" data-a="logout">'+ic('logout')+'<span>Keluar</span></button></div>';
   const hr=+nowWIT().slice(11,13);
-  $('#topbar').innerHTML='<div class="ttl"><b id="tt-t">'+esc(label(CUR))+'</b><small>'+esc(S.setting.namaToko)+' • Nabire</small></div>'+
-   '<div class="chips desk"><span class="chip"><i style="width:8px;height:8px;border-radius:50%;background:var(--ok)"></i>Toko Buka • '+(hr<13?'Shift Pagi':'Shift Siang')+'</span><span class="chip gold">'+ic('up','s')+' Spot Emas '+rp(S.setting.spotEmas)+'/gr</span><span class="pill syncchip ok">Sheets Sync</span></div>'+
-   '<button class="btn sm pri" data-a="trxnew" data-v="PENJUALAN" style="display:inline-flex;gap:6px;align-items:center;font-weight:700;box-shadow:0 4px 14px -3px rgba(245,179,1,.65)" title="Akses Cepat Transaksi Baru">'+ic('plus','s')+' <span class="desk">Transaksi Baru</span></button>'+
-   '<button class="ibtn" data-a="bell" aria-label="Notifikasi">'+ic('bell')+(n?'<span class="dot">'+n+'</span>':'')+'</button>'+
-   '<div class="me" data-a="myphoto" style="cursor:pointer" title="Klik untuk ubah foto profil"><div class="nm"><b>'+esc(S.me.nama)+'</b><small>'+(o?'Owner / Superadmin':'Kasir')+'</small></div>'+uAvatar(S.me)+'</div>';
+  $('#topbar').innerHTML='<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">'+
+    '<button id="sb-toggle" class="ibtn" data-a="sbtoggle" aria-label="Buka Menu" style="margin-right:2px">'+ic('menu')+'</button>'+
+    '<div class="ttl"><b id="tt-t">'+esc(label(CUR))+'</b><small>'+esc(S.setting.namaToko)+' • Nabire</small></div>'+
+   '</div>'+
+   '<div class="topbar-actions">'+
+    '<div class="chips desk"><span class="chip"><i style="width:8px;height:8px;border-radius:50%;background:var(--ok)"></i>Toko Buka • '+(hr<13?'Shift Pagi':'Shift Siang')+'</span><span class="chip gold desk-chip-extra">'+ic('up','s')+' Spot Emas '+rp(S.setting.spotEmas)+'/gr</span><span class="pill syncchip ok">Sheets Sync</span></div>'+
+    '<button class="btn sm pri" data-a="trxnew" data-v="PENJUALAN" style="display:inline-flex;gap:6px;align-items:center;font-weight:700;box-shadow:0 4px 14px -3px rgba(245,179,1,.65)" title="Akses Cepat Transaksi Baru">'+ic('plus','s')+' <span class="desk">Transaksi Baru</span></button>'+
+    '<button class="ibtn" data-a="bell" aria-label="Notifikasi">'+ic('bell')+(n?'<span class="dot">'+n+'</span>':'')+'</button>'+
+    '<div class="me" data-a="myphoto" style="cursor:pointer" title="Klik untuk ubah foto profil"><div class="nm"><b>'+esc(S.me.nama)+'</b><small>'+(o?'Owner / Superadmin':'Kasir')+'</small></div>'+uAvatar(S.me)+'</div>'+
+   '</div>';
   const bn=BN[o?'O':'K'];
   $('#bnav').innerHTML=bn.map(id=>{const m=MENU.find(x=>x[0]===id),on=id===CUR||(id==='menu'&&!bn.includes(CUR));return '<button class="'+(on?'on':'')+'" data-a="go" data-v="'+id+'" aria-label="'+esc(label(id))+'">'+ic(m?m[3]:'menu')+'<span>'+(m?m[2]:'Menu')+'</span>'+(id==='menu'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>'}).join('');
   setSync();
@@ -245,8 +250,21 @@ function go(p){
   if(!S)return;
   if(p!=='menu'&&!allowed().some(m=>m[0]===p))p='dashboard';
   CUR=p;$$('.pg').forEach(e=>e.classList.toggle('on',e.id==='pg-'+p));
+  const sb=$('#sidebar'), bd=$('#sidebar-backdrop');
+  if(sb)sb.classList.remove('open');
+  if(bd)bd.classList.remove('open');
   chrome();RJ='';render();window.scrollTo(0,0);
 }
+A.sbtoggle=()=>{
+  const sb=$('#sidebar'), bd=$('#sidebar-backdrop');
+  if(sb)sb.classList.toggle('open');
+  if(bd)bd.classList.toggle('open');
+};
+A.sbclose=()=>{
+  const sb=$('#sidebar'), bd=$('#sidebar-backdrop');
+  if(sb)sb.classList.remove('open');
+  if(bd)bd.classList.remove('open');
+};
 function render(){
   if(!S)return;
   const el=$('#pg-'+CUR),a=document.activeElement;
@@ -362,8 +380,26 @@ function komposisi(){
 
 /* ============ HALAMAN: DASHBOARD ============ */
 P.dashboard=function(){
-  const o=isO(),st=stats(!o),set=S.setting;
-  let h='<div class="ph"><div style="display:flex;align-items:center;gap:14px">'+uAvatar(S.me,'lg')+'<div><h1>Selamat Datang Kembali, '+esc(S.me.nama)+'!</h1><p>'+(o?'Pantau arus kas, gramasi emas, saldo brankas, dan pergerakan transaksi toko hari ini.':'Ringkasan shift Anda hari ini.')+'</p></div></div><div class="chips"><button class="btn sm pri" data-a="trxnew" data-v="PENJUALAN">'+ic('plus','s')+' Transaksi Baru</button><span class="chip">'+ic('cal','s')+' '+tgl(today())+'</span><span class="pill syncchip ok">Sheets Sync</span>'+(o?'<button class="btn sm dk" data-a="harga">'+ic('scale','s')+' Atur Harga</button>':'')+'</div></div>';
+  const o=isO(),st=stats(!o),set=S.setting,hr=+nowWIT().slice(11,13);
+  let h='<div class="welcome-hero">'+
+    '<div class="wh-profile">'+
+      '<div class="wh-av-wrap">'+uAvatar(S.me,'lg')+'<span class="wh-dot"></span></div>'+
+      '<div class="wh-info">'+
+        '<div class="wh-badges">'+
+          '<span class="tag gold">'+(o?'Owner / Superadmin':'Kasir Shift')+'</span>'+
+          '<span class="tag ok">Toko Buka • '+(hr<13?'Shift Pagi':'Shift Siang')+'</span>'+
+          '<span class="pill syncchip ok">Sheets Sync</span>'+
+        '</div>'+
+        '<h1>Selamat Datang Kembali, '+esc(S.me.nama)+'!</h1>'+
+        '<p>'+(o?'Pantau arus kas, gramasi emas, saldo brankas, dan pergerakan transaksi toko hari ini.':'Semoga shift hari ini lancar dan berkah. Pantau transaksi kasir Anda di sini.')+'</p>'+
+      '</div>'+
+    '</div>'+
+    '<div class="wh-actions">'+
+      '<button class="btn pri" data-a="trxnew" data-v="PENJUALAN">'+ic('plus','s')+' Transaksi Baru</button>'+
+      (o?'<button class="btn gh" data-a="harga">'+ic('scale','s')+' Atur Harga</button>':'')+
+      '<button class="btn gh" data-a="strukcfg">'+ic('printer','s')+' Format Struk</button>'+
+    '</div>'+
+  '</div>';
   const bankTot=o?Object.keys(S.saldo.bank||{}).reduce((s,k)=>s+S.saldo.bank[k],0):0;
   h+='<div class="grid g4">'+
    kpi(o?'Total Omzet Hari Ini':'Omzet Saya Hari Ini',rp(st.om),dpill(st.delta)+' <small>vs kemarin</small>','coin','gold')+
@@ -633,29 +669,340 @@ SUB.ftrx=f=>{
   closeModal();
   if(big)toast('Pengeluaran besar dikirim ke Owner untuk persetujuan','ok');else{toast('Transaksi tersimpan','ok');if(j!=='PENGELUARAN_OPS')showStruk(id)}
 };
-/* struk */
-const W=32,ctr=s=>{s=String(s||'');return ' '.repeat(Math.max(0,Math.floor((W-s.length)/2)))+s},lr=(a,b)=>{a=String(a);b=String(b);return a+' '.repeat(Math.max(1,W-a.length-b.length))+b};
-function strukText(t){
-  const s=S.setting,L=[ctr(s.namaToko),ctr(s.alamatToko)];if(s.teleponToko)L.push(ctr('Telp '+s.teleponToko));
-  L.push('-'.repeat(W),lr('Nota',nota(t)),lr('Waktu',tgl(t.waktu)+' '+jam(t.waktu)),lr('Kasir',uname(t.operatorId)));if(t.pelanggan)L.push(lr(t.jenis==='BUYBACK'?'Penjual':'Pelanggan',t.pelanggan));
-  L.push('-'.repeat(W),t.jenis==='BUYBACK'?'BUYBACK (BELI KEMBALI)':t.jenis==='PENGELUARAN_OPS'?'PENGELUARAN':String(t.kategori||'').toUpperCase()+(t.jenis==='JASA'?' (JASA)':''));
-  if(t.berat){L.push(t.logam+' '+(t.kadar||''));L.push(lr(gr(t.berat),rp(t.nominal/t.berat)+'/gr'))}
-  L.push('-'.repeat(W),lr('TOTAL',rp(t.nominal)),lr('Bayar',t.metodeBayar+(t.rekening?' '+t.rekening:'')));
-  if(t.status!=='AKTIF')L.push(ctr('** '+String(t.status).replace(/_/g,' ')+' **'));
-  L.push('-'.repeat(W),ctr('Terima kasih'),ctr('Simpan nota sebagai bukti'));return L.join('\n');
+/* ============ STRUK KASIR TERMAL (BOTSKILWEB-PRO STANDARD) ============ */
+const DEFAULT_STRUK = {
+  lebar: '58',
+  namaToko: '',
+  tagline: 'CABANG NABIRE - PAPUA TENGAH',
+  alamat: '',
+  telepon: '',
+  showLogo: true,
+  showKasir: true,
+  showWaktu: true,
+  showDetailBarang: true,
+  showMetodeBayar: true,
+  showQrNota: true,
+  pesanTerimaKasih: 'Terima Kasih Atas Kunjungan Anda',
+  kebijakan: 'Perhiasan yang dibeli dapat dijual kembali (buyback) sesuai ketentuan toko & harga pasar hari transaksi. Harap simpan nota resmi ini sebagai bukti sah kepemilikan.',
+  sosialMedia: 'WA: 0812-4000-xxxx • IG: @permataemasnabire'
+};
+
+function getStrukCfg(){
+  let cfg = (S && S.setting && S.setting.struk) || {};
+  if (typeof cfg === 'string') {
+    try { cfg = JSON.parse(cfg); } catch(e){ cfg = {}; }
+  }
+  const loc = LS.g('pos_struk_config');
+  if (loc) {
+    try { Object.assign(cfg, JSON.parse(loc)); } catch(e){}
+  }
+  return Object.assign({}, DEFAULT_STRUK, {
+    namaToko: (S && S.setting && S.setting.namaToko) || 'TOKO EMAS & PERAK PERMATA',
+    alamat: (S && S.setting && S.setting.alamatToko) || 'Jl. Merdeka No. 45, Oyehe, Nabire',
+    telepon: (S && S.setting && S.setting.teleponToko) || '0812-4000-xxxx'
+  }, cfg);
 }
-const findTrx=k=>S.trx.find(t=>t.transaksiId===k||t.clientId===k);
+
+function wrapText(text, width){
+  if (!text) return [];
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let cur = '';
+  words.forEach(w => {
+    if (!cur) cur = w;
+    else if ((cur + ' ' + w).length <= width) cur += ' ' + w;
+    else { lines.push(cur); cur = w; }
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function strukText(t, customCfg){
+  const cfg = customCfg || getStrukCfg();
+  const W = (cfg.lebar === '80' ? 44 : 32);
+  const ctr = s => { s = String(s || ''); return ' '.repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s; };
+  const lr = (a, b) => { a = String(a || ''); b = String(b || ''); return a + ' '.repeat(Math.max(1, W - a.length - b.length)) + b; };
+  const div1 = '='.repeat(W);
+  const div2 = '-'.repeat(W);
+
+  const L = [];
+  // Header
+  if (cfg.showLogo) {
+    L.push(ctr('❖ ❖ ❖  PERMATA POS  ❖ ❖ ❖'));
+  }
+  const storeName = cfg.namaToko || (S.setting && S.setting.namaToko) || 'TOKO EMAS & PERAK PERMATA';
+  wrapText(storeName.toUpperCase(), W).forEach(l => L.push(ctr(l)));
+  if (cfg.tagline) wrapText(cfg.tagline, W).forEach(l => L.push(ctr(l)));
+  if (cfg.alamat) wrapText(cfg.alamat, W).forEach(l => L.push(ctr(l)));
+  if (cfg.telepon) L.push(ctr('Telp/WA: ' + cfg.telepon));
+
+  L.push(div1);
+  L.push(lr('NO. NOTA', nota(t)));
+  if (cfg.showWaktu !== false) {
+    L.push(lr('WAKTU', tgl(t.waktu) + ' ' + jam(t.waktu) + ' WIT'));
+  }
+  if (cfg.showKasir !== false) {
+    L.push(lr('KASIR / OP', uname(t.operatorId)));
+  }
+  if (t.pelanggan) {
+    L.push(lr(t.jenis === 'BUYBACK' ? 'PENJUAL' : 'PELANGGAN', t.pelanggan));
+  }
+
+  L.push(div2);
+  // Item detail
+  const jTitle = t.jenis === 'BUYBACK' ? 'BUYBACK (BELI KEMBALI)' :
+                 t.jenis === 'PENGELUARAN_OPS' ? 'PENGELUARAN OPERASIONAL' :
+                 String(t.kategori || jenisLbl[t.jenis] || 'PENJUALAN').toUpperCase() + (t.jenis === 'JASA' ? ' (JASA)' : '');
+  L.push(jTitle);
+
+  if (cfg.showDetailBarang !== false && t.berat) {
+    L.push(' ' + (t.logam || 'EMAS') + ' ' + (t.kadar ? 'Kadar ' + t.kadar : ''));
+    L.push(lr(' ' + gr(t.berat), rp(t.nominal / t.berat) + '/gr'));
+  } else if (t.catatan) {
+    wrapText(' ' + t.catatan, W).forEach(l => L.push(l));
+  }
+
+  L.push(div2);
+  L.push(lr('TOTAL BAYAR', rp(t.nominal)));
+  if (cfg.showMetodeBayar !== false) {
+    L.push(lr('METODE', t.metodeBayar + (t.rekening ? ' (' + t.rekening + ')' : '')));
+  }
+
+  if (t.status !== 'AKTIF') {
+    L.push(ctr('** ' + String(t.status).replace(/_/g, ' ') + ' **'));
+  }
+
+  L.push(div1);
+  if (cfg.pesanTerimaKasih) {
+    wrapText(cfg.pesanTerimaKasih, W).forEach(l => L.push(ctr(l)));
+  }
+  if (cfg.kebijakan) {
+    wrapText(cfg.kebijakan, W).forEach(l => L.push(l));
+  }
+  if (cfg.sosialMedia) {
+    wrapText(cfg.sosialMedia, W).forEach(l => L.push(ctr(l)));
+  }
+  if (cfg.showQrNota !== false) {
+    L.push(ctr('[ VERIFIKASI DIGITAL NOTA ]'));
+    L.push(ctr('#' + nota(t)));
+  }
+  L.push(ctr('- - - - - - - - - - - - - - - -'));
+  return L.join('\n');
+}
+
+const findTrx = k => S.trx.find(t => t.transaksiId === k || t.clientId === k);
+
 function strukBody(t){
-  const sync=String(t.transaksiId).indexOf('TMP-')===0;
-  return '<pre class="struk" id="struk-box">'+esc(strukText(t))+'</pre><div class="row2" style="margin-top:12px"><button class="btn gh" data-a="print"'+(sync?' disabled':'')+'>'+ic('printer','s')+' Cetak</button><button class="btn gh" data-a="wa"'+(sync?' disabled':'')+'>'+ic('send','s')+' Kirim WA</button></div>'+
-   (t.status==='AKTIF'&&!sync?'<button class="btn bad blk" style="margin-top:10px" data-a="batal" data-v="'+esc(t.transaksiId)+'">'+ic('undo','s')+(isO()?' Batalkan Nota':' Ajukan Pembatalan')+'</button>':'')+(sync?'<small style="display:block;margin-top:8px;text-align:center">Nomor nota sedang diproses server…</small>':'');
+  const sync = String(t.transaksiId).indexOf('TMP-') === 0;
+  const cfg = getStrukCfg();
+  return '<div class="struk-preview-box" style="margin-bottom:14px">'+
+    '<div style="display:flex;justify-content:space-between;width:100%;max-width:'+(cfg.lebar==='80'?'460px':'320px')+';margin-bottom:8px">'+
+      '<span class="tag gold">'+(cfg.lebar==='80'?'Lebar Kertas 80mm':'Lebar Kertas 58mm')+'</span>'+
+      '<button class="btn xs gh" style="color:#fff;border-color:rgba(255,255,255,.2)" data-a="strukcfg">'+ic('sliders','s')+' Ubah Format Struk</button>'+
+    '</div>'+
+    '<div class="struk-paper '+(cfg.lebar==='80'?'w80':'w58')+'" id="struk-box">'+esc(strukText(t, cfg))+'</div>'+
+  '</div>'+
+  '<div class="row2" style="margin-top:12px">'+
+    '<button class="btn pri" data-a="print"'+(sync?' disabled':'')+'>'+ic('printer','s')+' Cetak Struk (Thermal)</button>'+
+    '<button class="btn gh" data-a="wa"'+(sync?' disabled':'')+'>'+ic('send','s')+' Kirim ke WhatsApp</button>'+
+  '</div>'+
+  (t.status==='AKTIF'&&!sync?'<button class="btn bad blk" style="margin-top:10px" data-a="batal" data-v="'+esc(t.transaksiId)+'">'+ic('undo','s')+(isO()?' Batalkan Nota':' Ajukan Pembatalan')+'</button>':'')+
+  (sync?'<small style="display:block;margin-top:8px;text-align:center">Nomor nota sedang diproses server…</small>':'');
 }
-function showStruk(k){const t=findTrx(k);if(!t)return;RC=k;modal('Struk / Nota',strukBody(t));RC=k}
-function refreshStruk(){if(!RC||!$('#struk-box'))return;const t=findTrx(RC);if(!t){RC=null;return}$('#struk-box').parentNode.innerHTML=strukBody(t)}
-A.trx=v=>showStruk(v);
-A.print=()=>{const t=findTrx(RC);if(!t)return;$('#print-area').textContent=strukText(t);window.print()};
-function waOpen(text){const a=document.createElement('a');a.href='https://wa.me/?text='+encodeURIComponent(text);a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
-A.wa=()=>{const t=findTrx(RC);if(t)waOpen(strukText(t))};
+
+function showStruk(k){ const t = findTrx(k); if(!t) return; RC = k; modal('Struk / Nota Resmi', strukBody(t)); RC = k; }
+function refreshStruk(){ if(!RC||!$('#struk-box')) return; const t = findTrx(RC); if(!t){ RC = null; return; } $('#struk-box').parentNode.innerHTML = strukBody(t); }
+
+A.trx = v => showStruk(v);
+A.print = () => {
+  const t = findTrx(RC);
+  if (!t) return;
+  const cfg = getStrukCfg();
+  const pa = $('#print-area');
+  if (pa) {
+    pa.className = (cfg.lebar === '80' ? 'p80' : 'p58');
+    pa.textContent = strukText(t, cfg);
+  }
+  window.print();
+};
+
+function waOpen(text){ const a = document.createElement('a'); a.href = 'https://wa.me/?text=' + encodeURIComponent(text); a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+A.wa = () => { const t = findTrx(RC); if(t) waOpen(strukText(t)); };
+
+F.strukConfig = function(){
+  const cfg = getStrukCfg();
+  const demoTrx = S.trx.find(live) || {
+    transaksiId: 'TRX-SAMPLE-01',
+    waktu: nowWIT(),
+    jenis: 'PENJUALAN',
+    kategori: 'CINCIN PERMATA EMAS',
+    logam: 'EMAS',
+    kadar: '700',
+    berat: 3.25,
+    nominal: 2762500,
+    metodeBayar: 'TUNAI',
+    pelanggan: 'Ibu Fatimah (Pelanggan)',
+    operatorId: S.me ? S.me.userId : 'kasir_1',
+    status: 'AKTIF'
+  };
+
+  modal('Pengaturan & Format Struk Kasir Termal',
+    '<div class="grid" style="gap:20px">'+
+      '<div class="grid g2" style="gap:20px;align-items:start">'+
+        '<div>'+
+          '<div class="card" style="padding:16px;margin-bottom:14px">'+
+            '<div class="hd" style="margin-bottom:10px"><h3>Ukuran Kertas Thermal Printer</h3></div>'+
+            '<label class="fld"><span class="lb">Pilihan Lebar Kertas Struk</span>'+
+              '<select class="inp" id="sc_lebar" data-in="scchange">'+
+                '<option value="58"'+(cfg.lebar==='58'?' selected':'')+'>58 mm — Standar Mini POS (32 Karakter)</option>'+
+                '<option value="80"'+(cfg.lebar==='80'?' selected':'')+'>80 mm — Standar Kasir Besar (44 Karakter)</option>'+
+              '</select>'+
+              '<small>Ukuran 58mm cocok untuk printer bluetooth portabel / kasir mini POS. 80mm untuk printer kasir desktop USB/LAN.</small>'+
+            '</label>'+
+          '</div>'+
+
+          '<div class="card" style="padding:16px;margin-bottom:14px">'+
+            '<div class="hd" style="margin-bottom:10px"><h3>Identitas Header Struk</h3></div>'+
+            '<label class="fld"><span class="lb">Nama Toko di Struk</span><input class="inp" id="sc_namaToko" value="'+esc(cfg.namaToko)+'" data-in="scchange"></label>'+
+            '<label class="fld"><span class="lb">Tagline / Cabang</span><input class="inp" id="sc_tagline" value="'+esc(cfg.tagline)+'" data-in="scchange"></label>'+
+            '<label class="fld"><span class="lb">Alamat Toko Lengkap</span><textarea class="inp" id="sc_alamat" data-in="scchange" style="min-height:60px">'+esc(cfg.alamat)+'</textarea></label>'+
+            '<label class="fld"><span class="lb">No. Telepon / WhatsApp Toko</span><input class="inp" id="sc_telepon" value="'+esc(cfg.telepon)+'" data-in="scchange"></label>'+
+          '</div>'+
+
+          '<div class="card" style="padding:16px;margin-bottom:14px">'+
+            '<div class="hd" style="margin-bottom:10px"><h3>Elemen &amp; Informasi Transaksi</h3></div>'+
+            '<label class="chk"><input type="checkbox" id="sc_showLogo" '+(cfg.showLogo?'checked':'')+' data-in="scchange"> Tampilkan Simbol Permata (Logo Top)</label>'+
+            '<label class="chk"><input type="checkbox" id="sc_showKasir" '+(cfg.showKasir?'checked':'')+' data-in="scchange"> Tampilkan Nama Kasir / Operator Shift</label>'+
+            '<label class="chk"><input type="checkbox" id="sc_showWaktu" '+(cfg.showWaktu?'checked':'')+' data-in="scchange"> Tampilkan Tanggal &amp; Jam WIT Transaksi</label>'+
+            '<label class="chk"><input type="checkbox" id="sc_showDetailBarang" '+(cfg.showDetailBarang?'checked':'')+' data-in="scchange"> Tampilkan Rincian Gramasi &amp; Kadar Emas</label>'+
+            '<label class="chk"><input type="checkbox" id="sc_showMetodeBayar" '+(cfg.showMetodeBayar?'checked':'')+' data-in="scchange"> Tampilkan Metode Pembayaran / Bank QRIS</label>'+
+            '<label class="chk"><input type="checkbox" id="sc_showQrNota" '+(cfg.showQrNota?'checked':'')+' data-in="scchange"> Tampilkan Kode Verifikasi Digital Nota</label>'+
+          '</div>'+
+
+          '<div class="card" style="padding:16px">'+
+            '<div class="hd" style="margin-bottom:10px"><h3>Catatan Kaki (Footer &amp; Kebijakan)</h3></div>'+
+            '<label class="fld"><span class="lb">Pesan Ucapan Terima Kasih</span><input class="inp" id="sc_pesanTerimaKasih" value="'+esc(cfg.pesanTerimaKasih)+'" data-in="scchange"></label>'+
+            '<label class="fld"><span class="lb">Kebijakan Garansi / Buyback Toko</span><textarea class="inp" id="sc_kebijakan" data-in="scchange" style="min-height:76px">'+esc(cfg.kebijakan)+'</textarea></label>'+
+            '<label class="fld"><span class="lb">Media Sosial / Instagram Toko</span><input class="inp" id="sc_sosialMedia" value="'+esc(cfg.sosialMedia)+'" data-in="scchange"></label>'+
+          '</div>'+
+        '</div>'+
+
+        '<div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+            '<b>Live Preview Struk Termal</b>'+
+            '<button class="btn xs pri" data-a="struktestprint">'+ic('printer','s')+' Cetak Uji Coba</button>'+
+          '</div>'+
+          '<div class="struk-preview-box">'+
+            '<div class="struk-paper '+(cfg.lebar==='80'?'w80':'w58')+'" id="sc-preview">'+esc(strukText(demoTrx,cfg))+'</div>'+
+          '</div>'+
+          '<small style="display:block;margin-top:10px;color:var(--mut);text-align:center">Preview diperbarui secara langsung saat Anda mengetik atau mengubah opsi di samping.</small>'+
+        '</div>'+
+      '</div>'+
+
+      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">'+
+        '<button class="btn gh" data-a="strukreset">'+ic('refresh','s')+' Reset ke Standar</button>'+
+        '<button class="btn pri" data-a="struksave">'+ic('check','s')+' Simpan Pengaturan Struk</button>'+
+      '</div>'+
+    '</div>');
+};
+
+IN.scchange = () => {
+  const cfg = {
+    lebar: $('#sc_lebar') ? $('#sc_lebar').value : '58',
+    namaToko: $('#sc_namaToko') ? $('#sc_namaToko').value : '',
+    tagline: $('#sc_tagline') ? $('#sc_tagline').value : '',
+    alamat: $('#sc_alamat') ? $('#sc_alamat').value : '',
+    telepon: $('#sc_telepon') ? $('#sc_telepon').value : '',
+    showLogo: $('#sc_showLogo') ? $('#sc_showLogo').checked : true,
+    showKasir: $('#sc_showKasir') ? $('#sc_showKasir').checked : true,
+    showWaktu: $('#sc_showWaktu') ? $('#sc_showWaktu').checked : true,
+    showDetailBarang: $('#sc_showDetailBarang') ? $('#sc_showDetailBarang').checked : true,
+    showMetodeBayar: $('#sc_showMetodeBayar') ? $('#sc_showMetodeBayar').checked : true,
+    showQrNota: $('#sc_showQrNota') ? $('#sc_showQrNota').checked : true,
+    pesanTerimaKasih: $('#sc_pesanTerimaKasih') ? $('#sc_pesanTerimaKasih').value : '',
+    kebijakan: $('#sc_kebijakan') ? $('#sc_kebijakan').value : '',
+    sosialMedia: $('#sc_sosialMedia') ? $('#sc_sosialMedia').value : ''
+  };
+  const demoTrx = S.trx.find(live) || {
+    transaksiId: 'TRX-SAMPLE-01',
+    waktu: nowWIT(),
+    jenis: 'PENJUALAN',
+    kategori: 'CINCIN PERMATA EMAS',
+    logam: 'EMAS',
+    kadar: '700',
+    berat: 3.25,
+    nominal: 2762500,
+    metodeBayar: 'TUNAI',
+    pelanggan: 'Ibu Fatimah (Pelanggan)',
+    operatorId: S.me ? S.me.userId : 'kasir_1',
+    status: 'AKTIF'
+  };
+  const prevEl = $('#sc-preview');
+  if (prevEl) {
+    prevEl.className = 'struk-paper ' + (cfg.lebar === '80' ? 'w80' : 'w58');
+    prevEl.textContent = strukText(demoTrx, cfg);
+  }
+};
+
+A.strukcfg = () => F.strukConfig();
+
+A.struksave = () => {
+  const cfg = {
+    lebar: $('#sc_lebar') ? $('#sc_lebar').value : '58',
+    namaToko: $('#sc_namaToko') ? $('#sc_namaToko').value.trim() : '',
+    tagline: $('#sc_tagline') ? $('#sc_tagline').value.trim() : '',
+    alamat: $('#sc_alamat') ? $('#sc_alamat').value.trim() : '',
+    telepon: $('#sc_telepon') ? $('#sc_telepon').value.trim() : '',
+    showLogo: $('#sc_showLogo') ? $('#sc_showLogo').checked : true,
+    showKasir: $('#sc_showKasir') ? $('#sc_showKasir').checked : true,
+    showWaktu: $('#sc_showWaktu') ? $('#sc_showWaktu').checked : true,
+    showDetailBarang: $('#sc_showDetailBarang') ? $('#sc_showDetailBarang').checked : true,
+    showMetodeBayar: $('#sc_showMetodeBayar') ? $('#sc_showMetodeBayar').checked : true,
+    showQrNota: $('#sc_showQrNota') ? $('#sc_showQrNota').checked : true,
+    pesanTerimaKasih: $('#sc_pesanTerimaKasih') ? $('#sc_pesanTerimaKasih').value.trim() : '',
+    kebijakan: $('#sc_kebijakan') ? $('#sc_kebijakan').value.trim() : '',
+    sosialMedia: $('#sc_sosialMedia') ? $('#sc_sosialMedia').value.trim() : ''
+  };
+  LS.s('pos_struk_config', JSON.stringify(cfg));
+  if (!S.setting) S.setting = {};
+  S.setting.struk = cfg;
+  mut('settingSimpan', { struk: JSON.stringify(cfg) }, () => {});
+  closeModal();
+  toast('Pengaturan format struk berhasil disimpan!', 'ok');
+  if (CUR === 'pengaturan') render();
+};
+
+A.strukreset = () => {
+  LS.d('pos_struk_config');
+  if (S.setting) S.setting.struk = DEFAULT_STRUK;
+  mut('settingSimpan', { struk: JSON.stringify(DEFAULT_STRUK) }, () => {});
+  toast('Pengaturan struk dikembalikan ke standar awal', 'ok');
+  F.strukConfig();
+};
+
+A.struktestprint = () => {
+  const cfg = getStrukCfg();
+  const demoTrx = S.trx.find(live) || {
+    transaksiId: 'TRX-SAMPLE-01',
+    waktu: nowWIT(),
+    jenis: 'PENJUALAN',
+    kategori: 'CINCIN PERMATA EMAS',
+    logam: 'EMAS',
+    kadar: '700',
+    berat: 3.25,
+    nominal: 2762500,
+    metodeBayar: 'TUNAI',
+    pelanggan: 'Ibu Fatimah (Pelanggan)',
+    operatorId: S.me ? S.me.userId : 'kasir_1',
+    status: 'AKTIF'
+  };
+  const pa = $('#print-area');
+  if (pa) {
+    pa.className = (cfg.lebar === '80' ? 'p80' : 'p58');
+    pa.textContent = strukText(demoTrx, cfg);
+  }
+  window.print();
+};
 A.batal=v=>{
   const t=findTrx(v);if(!t)return;
   openForm({title:isO()?'Batalkan Nota '+t.transaksiId:'Ajukan Pembatalan',ok:isO()?'Batalkan Nota':'Kirim Pengajuan ke Owner',fields:[{k:'alasan',l:'Alasan pembatalan',t:'ta',req:1}],
@@ -719,13 +1066,24 @@ A.lapx=()=>{
 
 /* ============ PENGATURAN ============ */
 P.pengaturan=function(){
-  const s=S.setting,us=S.users||[];
-  return '<div class="ph"><div><h1>Pengaturan Toko</h1><p>Profil, harga, rekening, karyawan, dan keamanan.</p></div></div><div class="grid g2" style="align-items:start">'+
-   '<div class="card"><div class="hd"><h3>Profil &amp; Operasional</h3><button class="btn sm" data-a="profil">'+ic('edit','s')+' Ubah</button></div>'+
-   [['Nama toko',s.namaToko],['Alamat',s.alamatToko],['Telepon',s.teleponToko],['Jam masuk standar',s.jamMasuk],['Koordinat toko',s.latitude+', '+s.longitude],['Radius absensi',s.radiusAbsensi+' m'],['Batas approval pengeluaran',rp(s.limitApproval)],['Email notifikasi Owner',s.ownerEmail||'(email akun Owner)']].map(x=>'<div class="tr" style="min-height:44px"><span class="tm"><small>'+x[0]+'</small><b style="white-space:normal">'+esc(x[1]||'-')+'</b></span></div>').join('')+'</div>'+
-   '<div class="grid" style="gap:20px"><div class="card"><div class="hd"><h3>Harga &amp; Rekening</h3><div class="chips"><button class="btn sm" data-a="harga">Harga</button><button class="btn sm" data-a="rekedit">Rekening</button></div></div><div class="tr"><span class="tm"><small>Kadar 700 / gram</small><b>'+rp(s.hargaKadar700)+'</b></span><span class="tm"><small>Spot 24K</small><b>'+rp(s.spotEmas)+'</b></span></div>'+((s.rekening||[]).map(r=>'<div class="tr"><span class="ico gold">'+ic('bank')+'</span><span class="tm"><b>'+esc(r.nama)+'</b><small>'+esc(r.noRek||'-')+'</small></span></div>').join('')||empty('Belum ada rekening.'))+'</div>'+
-   '<div class="card"><div class="hd"><h3>Keamanan</h3></div><button class="btn blk" data-a="pass">'+ic('key','s')+' Ubah Kata Sandi Saya</button><small style="display:block;margin-top:10px">Reset password Super Admin &amp; reset data dummy dilakukan dari backend (editor Apps Script): <b>resetPasswordSuperAdmin()</b> dan <b>resetDataDummy()</b>.</small></div></div></div>'+
-   '<div class="card" style="margin-top:20px"><div class="hd"><div><h3>Kelola Karyawan &amp; Hak Akses</h3><small>Foto profil, status, dan PIN login</small></div><button class="btn sm pri" data-a="useradd">'+ic('plus','s')+' Tambah Karyawan</button></div>'+us.map(u=>'<div class="tr">'+uAvatar(u,'sm')+'<span class="tm"><b>'+esc(u.nama)+'</b><small>'+esc(u.username)+' · <span class="tag '+(u.role==='OWNER'?'gold':'')+'">'+u.role+'</span> · <span class="tag '+(u.status==='AKTIF'?'ok':'bad')+'">'+u.status+'</span></small></span><div style="display:flex;gap:6px"><button class="btn sm gh" data-a="myphoto" data-v="'+u.userId+'" title="Ubah foto">'+ic('camera','s')+' Foto</button>'+(u.role==='OWNER'?'':'<button class="btn sm" data-a="useredit" data-v="'+u.userId+'">Ubah</button><button class="btn sm" data-a="userpin" data-v="'+u.userId+'">Reset PIN</button>')+'</div></div>').join('')+'</div>';
+  const s=S.setting,us=S.users||[],sc=getStrukCfg();
+  return '<div class="ph"><div><h1>Pengaturan Toko &amp; Struk</h1><p>Profil, harga, rekening bank, format struk thermal, karyawan, dan keamanan.</p></div></div>'+
+   '<div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#ffffff 0%,#fffdf8 55%,#fff6db 100%);border-color:rgba(245,179,1,0.35)">'+
+    '<div class="hd"><div><h3>Format &amp; Pengaturan Struk Kasir Termal</h3><small>Kustomisasi cetak nota 58mm / 80mm, header toko, dan kebijakan buyback</small></div>'+
+      '<div class="chips"><button class="btn sm pri" data-a="strukcfg">'+ic('printer','s')+' Kustomisasi Struk</button><button class="btn sm gh" data-a="struktestprint">'+ic('printer','s')+' Cetak Uji Coba</button></div>'+
+    '</div>'+
+    '<div class="grid g3">'+
+      '<div class="mini"><small class="lbl">Ukuran Thermal</small><div class="big" style="font-size:18px">'+(sc.lebar==='80'?'80 mm (Besar)':'58 mm (Mini POS)')+'</div><small>Printer Bluetooth / Desktop</small></div>'+
+      '<div class="mini"><small class="lbl">Header Nota</small><div class="big" style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(sc.namaToko)+'</div><small>'+esc(sc.tagline)+'</small></div>'+
+      '<div class="mini"><small class="lbl">Kontak Struk</small><div class="big" style="font-size:16px">'+esc(sc.telepon||'-')+'</div><small>WhatsApp / Layanan Toko</small></div>'+
+    '</div>'+
+   '</div>'+
+   '<div class="grid g2" style="align-items:start">'+
+    '<div class="card"><div class="hd"><h3>Profil &amp; Operasional</h3><button class="btn sm" data-a="profil">'+ic('edit','s')+' Ubah</button></div>'+
+    [['Nama toko',s.namaToko],['Alamat',s.alamatToko],['Telepon',s.teleponToko],['Jam masuk standar',s.jamMasuk],['Koordinat toko',s.latitude+', '+s.longitude],['Radius absensi',s.radiusAbsensi+' m'],['Batas approval pengeluaran',rp(s.limitApproval)],['Email notifikasi Owner',s.ownerEmail||'(email akun Owner)']].map(x=>'<div class="tr" style="min-height:44px"><span class="tm"><small>'+x[0]+'</small><b style="white-space:normal">'+esc(x[1]||'-')+'</b></span></div>').join('')+'</div>'+
+    '<div class="grid" style="gap:20px"><div class="card"><div class="hd"><h3>Harga &amp; Rekening</h3><div class="chips"><button class="btn sm" data-a="harga">Harga</button><button class="btn sm" data-a="rekedit">Rekening</button></div></div><div class="tr"><span class="tm"><small>Kadar 700 / gram</small><b>'+rp(s.hargaKadar700)+'</b></span><span class="tm"><small>Spot 24K</small><b>'+rp(s.spotEmas)+'</b></span></div>'+((s.rekening||[]).map(r=>'<div class="tr"><span class="ico gold">'+ic('bank')+'</span><span class="tm"><b>'+esc(r.nama)+'</b><small>'+esc(r.noRek||'-')+'</small></span></div>').join('')||empty('Belum ada rekening.'))+'</div>'+
+    '<div class="card"><div class="hd"><h3>Keamanan</h3></div><button class="btn blk" data-a="pass">'+ic('key','s')+' Ubah Kata Sandi Saya</button><small style="display:block;margin-top:10px">Reset password Super Admin &amp; reset data dummy dilakukan dari backend (editor Apps Script): <b>resetPasswordSuperAdmin()</b> dan <b>resetDataDummy()</b>.</small></div></div></div>'+
+    '<div class="card" style="margin-top:20px"><div class="hd"><div><h3>Kelola Karyawan &amp; Hak Akses</h3><small>Foto profil, status, dan PIN login</small></div><button class="btn sm pri" data-a="useradd">'+ic('plus','s')+' Tambah Karyawan</button></div>'+us.map(u=>'<div class="tr">'+uAvatar(u,'sm')+'<span class="tm"><b>'+esc(u.nama)+'</b><small>'+esc(u.username)+' · <span class="tag '+(u.role==='OWNER'?'gold':'')+'">'+u.role+'</span> · <span class="tag '+(u.status==='AKTIF'?'ok':'bad')+'">'+u.status+'</span></small></span><div style="display:flex;gap:6px"><button class="btn sm gh" data-a="myphoto" data-v="'+u.userId+'" title="Ubah foto">'+ic('camera','s')+' Foto</button>'+(u.role==='OWNER'?'':'<button class="btn sm" data-a="useredit" data-v="'+u.userId+'">Ubah</button><button class="btn sm" data-a="userpin" data-v="'+u.userId+'">Reset PIN</button>')+'</div></div>').join('')+'</div>';
 };
 A.profil=()=>F.profil();A.rekedit=()=>F.rekening();A.pass=()=>F.pass();A.useradd=()=>F.user();A.useredit=v=>F.user(v);A.userpin=v=>F.pin(v);
 A.myphoto=v=>F.photo(v);A.avchoose=v=>{const i=$('#av-file-input');if(i){i.dataset.uid=v||'';i.value='';i.click()}};
