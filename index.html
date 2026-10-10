@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161618">
+<title>Permata Emas &amp; Perak POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="boot" class="boot"><div><i></i>PERMATA</div></div>
+
+<!-- ============ LOGIN (statis, tampil instan) ============ -->
+<div id="view-login" class="hidden">
+  <div class="lg">
+    <div class="lg-l">
+      <div class="brand"><div class="logo" data-ic="gem"></div><div><b>Permata</b><small>EMAS &amp; PERAK</small></div></div>
+      <div><span class="pill gold" id="lg-cab">CABANG NABIRE</span></div>
+      <h1>Sistem Operasional &amp; POS Toko Emas Nabire</h1>
+      <p>Kasir, penimbangan gramasi, kas laci, brankas, dan persetujuan Owner dalam satu aplikasi.</p>
+      <div class="feat"><div class="ico" data-ic="cloud"></div><div><b>Google Sheets sebagai database</b><small>Data tersinkron otomatis di semua perangkat.</small></div></div>
+      <div class="feat"><div class="ico" data-ic="pin"></div><div><b>Absensi Selfie &amp; GPS</b><small>Verifikasi lokasi karyawan di radius toko.</small></div></div>
+      <div class="feat"><div class="ico" data-ic="lock"></div><div><b>Otorisasi Owner</b><small>Pembatalan nota &amp; pengeluaran besar wajib disetujui.</small></div></div>
+    </div>
+    <div class="lg-r">
+      <div class="lgm">
+        <div class="brand"><div class="logo" data-ic="gem"></div><div><b id="lgm-nama">Toko Emas &amp; Perak Permata</b><small>SISTEM KASIR &amp; OPERASIONAL</small></div></div>
+        <div class="spot" style="margin-top:10px"><span data-ic="coin"></span><div><small style="color:#a1a1aa">Spot Emas 24K Nabire</small><br><b id="lgm-spot">-</b></div></div>
+      </div>
+      <h2>Masuk ke Sistem</h2>
+      <p style="color:var(--mut);margin:4px 0 16px">Pilih peran dan masukkan kredensial untuk memulai shift atau administrasi.</p>
+      <div class="seg fill" id="lg-role" style="margin-bottom:16px">
+        <button type="button" class="on" data-role="KARYAWAN">Karyawan / Kasir</button>
+        <button type="button" data-role="OWNER">Owner / Direksi</button>
+      </div>
+      <div class="gps warn" id="lg-gps"><span data-ic="pin"></span><span id="lg-gps-t">Memeriksa lokasi…</span></div>
+      <form id="lg-form" autocomplete="on" novalidate>
+        <div id="lg-err" class="err hidden"></div>
+        <label class="fld"><span class="lb">NIK / USERNAME</span><input class="inp" id="lg-u" autocomplete="username" autocapitalize="none" placeholder="mis. kasir_siti"></label>
+        <label class="fld"><span class="lb">PIN / KATA SANDI</span>
+          <div class="pw"><input class="inp" id="lg-p" type="password" autocomplete="current-password" placeholder="••••••"><button type="button" class="eye" id="lg-eye" aria-label="Tampilkan sandi" data-ic="eye"></button></div>
+        </label>
+        <button class="btn pri blk" id="lg-go" type="submit">Masuk ke Sistem <span data-ic="arrow"></span></button>
+      </form>
+      <div class="demo hidden" id="lg-demo"><span class="lbl">Akses cepat pengujian (demo mode)</span>
+        <div class="row2"><button type="button" id="dm-k"><span data-ic="user" class="ic s"></span> Kasir</button><button type="button" id="dm-o"><span data-ic="shield"></span> Owner</button></div></div>
+      <p style="text-align:center;margin-top:18px"><small><span data-ic="lock" class="ic s"></span> Google Workspace Secured • Nabire, Papua Tengah</small></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APLIKASI (semua halaman dimuat sekali, navigasi = show/hide) ============ -->
+<div id="view-app" class="hidden">
+  <aside id="sidebar"></aside>
+  <div class="shell">
+    <header id="topbar"></header>
+    <main id="main">
+      <section class="pg" id="pg-dashboard"></section>
+      <section class="pg" id="pg-kasir"></section>
+      <section class="pg" id="pg-stok"></section>
+      <section class="pg" id="pg-kas"></section>
+      <section class="pg" id="pg-brankas"></section>
+      <section class="pg" id="pg-bank"></section>
+      <section class="pg" id="pg-absensi"></section>
+      <section class="pg" id="pg-piutang"></section>
+      <section class="pg" id="pg-approval"></section>
+      <section class="pg" id="pg-laporan"></section>
+      <section class="pg" id="pg-pengaturan"></section>
+      <section class="pg" id="pg-menu"></section>
+    </main>
+  </div>
+  <nav id="bnav"></nav>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+<div id="print-area"></div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
