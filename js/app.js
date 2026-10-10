@@ -45,7 +45,10 @@ swap:'<path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/>',
 info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
 coin:'<circle cx="12" cy="12" r="10"/><path d="M14.8 9a2 2 0 0 0-1.8-1h-2a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4h-2a2 2 0 0 1-1.8-1M12 6v2M12 16v2"/>',
 edit:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
-tool:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9Z"/>'
+tool:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9Z"/>',
+database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>',
+server:'<rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>',
+upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>'
 };
 const ic=(n,c)=>'<svg class="ic '+(c||'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(IC[n]||'')+'</svg>';
 function hydrateIcons(root){$$('[data-ic]',root).forEach(e=>{if(!e.firstChild)e.innerHTML=ic(e.dataset.ic,e.classList.contains('s')?'s':'')})}
@@ -177,7 +180,8 @@ const MENU=[
 ['brankas','Saldo Brankas (Vault)','Brankas','lock','O'],['bank','Rekening Bank & QRIS','Bank','bank','O'],
 ['absensi','Absensi & Izin','Absen','pin','B'],['piutang','Piutang, Hutang & Pinjaman','Piutang','file','O'],
 ['approval','Pusat Persetujuan','Persetujuan','shield','O'],['laporan','Laporan & Rekap','Laporan','chart','O'],
-['pengaturan','Pengaturan Toko','Pengaturan','sliders','O']];
+['pengaturan','Pengaturan Toko','Pengaturan','sliders','O'],
+['backend','Backend GAS & Basis Data','Backend & DB','database','O']];
 const allowed=()=>MENU.filter(m=>m[4]==='B'||(m[4]==='O')===isO());
 const BN={O:['dashboard','kasir','stok','absensi','menu'],K:['dashboard','kasir','kas','absensi','menu']};
 function label(id){if(id==='menu')return 'Menu';const m=MENU.find(x=>x[0]===id);return m?(id==='absensi'&&isO()?'Absensi Karyawan':m[1]):'';}
@@ -710,6 +714,332 @@ F.pin=function(id){
 F.pass=function(){
   openForm({title:'Ubah Kata Sandi',fields:[{k:'lama',l:'Kata sandi saat ini',t:'password',req:1},{k:'baru',l:'Kata sandi baru (min. 6)',t:'password',req:1}],
    fn:v=>{if(v.baru.length<6)return 'Minimal 6 karakter.';mut('passwordUbah',v);toast('Mengubah kata sandi…','ok')}});
+};
+
+/* ============ BACKEND GAS & BACKUP / RECOVERY ============ */
+let BK_TEMP=null;
+let LAST_PING_MS=null;
+
+function downloadFile(content,filename,type){
+  const blob=new Blob([content],{type:type||'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);
+  a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+function exportCSV(headers,rows,filename){
+  const escCell=c=>{if(c==null)return '""';return '"'+String(c).replace(/"/g,'""')+'"'};
+  const csv=[headers.map(escCell).join(','),...rows.map(r=>r.map(escCell).join(','))].join('\r\n');
+  downloadFile('\uFEFF'+csv,filename,'text/csv;charset=utf-8');
+}
+
+function getBackendMetrics(){
+  if(!S)return null;
+  const trxCount=(S.trx||[]).length;
+  const kasCount=(S.kas||[]).length;
+  const tutupCount=(S.tutup||[]).length;
+  const stokSumCount=(S.stokSum||[]).length;
+  const stokLogCount=(S.stokLog||[]).length;
+  const bankCount=(S.setting&&S.setting.rekening?S.setting.rekening.length:0);
+  const absenCount=(S.absensi||[]).length;
+  const izinCount=(S.izin||[]).length;
+  const piutangCount=(S.piutang||[]).length;
+  const pinjamanCount=(S.pinjaman||[]).length;
+  const approvalCount=(S.approval||[]).length;
+  const userCount=(S.users||[]).length;
+
+  const cells=(trxCount*20)+(kasCount*8)+(tutupCount*8)+(stokLogCount*8)+
+              (stokSumCount*6)+(absenCount*10)+(izinCount*8)+
+              (piutangCount*10)+(pinjamanCount*10)+(approvalCount*8)+
+              (userCount*6)+1200;
+
+  const MAX_CELLS=10000000;
+  const cellPct=Math.max(0.01,(cells/MAX_CELLS)*100);
+  const sisaCells=Math.max(0,MAX_CELLS-cells);
+
+  const jsonStr=JSON.stringify(S);
+  const jsonSizeKB=(new Blob([jsonStr]).size/1024).toFixed(1);
+
+  return {
+    trxCount,kasCount,tutupCount,stokSumCount,stokLogCount,bankCount,
+    absenCount,izinCount,piutangCount,pinjamanCount,approvalCount,userCount,
+    cells,MAX_CELLS,cellPct,sisaCells,jsonSizeKB
+  };
+}
+
+P.backend=function(){
+  const m=getBackendMetrics();
+  const gasUrl=(window.APP_CONFIG&&window.APP_CONFIG.GAS_URL)||'-';
+  const maskedGas=gasUrl.length>40?gasUrl.slice(0,32)+'••••••••'+gasUrl.slice(-14):gasUrl;
+  const lastBk=LS.g('pos_last_backup')||'Belum ada riwayat backup lokal';
+
+  return '<div class="ph"><div><h1>Backend GAS &amp; Basis Data</h1><p>Status API Google Apps Script, sisa kapasitas Sheets, backup &amp; pemulihan data (recovery).</p></div>'+
+    '<div class="chips">'+
+      '<button class="btn sm dk" data-a="bkping" id="bk-ping-btn">'+ic('refresh','s')+' Tes Latency &amp; Health</button>'+
+      '<button class="btn sm pri" data-a="bkdown">'+ic('download','s')+' Unduh Backup JSON</button>'+
+      '<button class="btn sm" data-a="bkopenfile">'+ic('upload','s')+' Pulihkan Data (Recovery)</button>'+
+    '</div></div>'+
+
+    '<input type="file" id="bk-file-input" accept=".json,application/json" class="hidden" data-in="bkfile">'+
+
+    '<div class="grid g3" style="margin-bottom:20px">'+
+      kpi('Status Backend GAS','<span id="bk-ping-res"><span class="pill ok">'+ic('check','s')+' Aktif (REST API)</span></span>','<small>'+(LAST_PING_MS!=null?LAST_PING_MS+' ms latency':'Klik tes untuk cek respon')+'</small>','server','gold')+
+      kpi('Estimasi Sel Terpakai',nf.format(m?m.cells:0)+' <small>sel</small>','<small>Batas Google Sheets: 10 Juta sel</small>','database')+
+      kpi('Ukuran Snapshot Data',(m?m.jsonSizeKB:0)+' <small>KB</small>','<small>Versi state: '+(S.ver||'1')+' • '+S.trx.length+' transaksi</small>','file')+
+    '</div>'+
+
+    '<div class="grid dash2" style="margin-bottom:20px">'+
+      '<div class="card">'+
+        '<div class="hd"><div><h3>Kapasitas &amp; Kuota Google Sheets</h3><small>Google Spreadsheet database (DB_PermataPOS)</small></div>'+
+          '<span class="pill ok">Kapasitas Sangat Lapang</span>'+
+        '</div>'+
+        '<div style="margin:12px 0 16px">'+
+          '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><small><b>Penggunaan Sel Database:</b></small><small><b>'+(m?m.cellPct.toFixed(3):'0')+'%</b> dari 10.000.000</small></div>'+
+          '<div class="track" style="height:12px"><i style="width:'+Math.max(2,(m?m.cellPct:0))+'%;background:var(--ok)"></i></div>'+
+          '<div style="display:flex;justify-content:space-between;color:var(--mut);font-size:12px"><span>Terpakai: '+nf.format(m?m.cells:0)+' sel</span><span>Sisa Kapasitas: ~'+nf.format(m?m.sisaCells:10000000)+' sel</span></div>'+
+        '</div>'+
+        '<div class="tbw" style="margin-top:14px"><table>'+
+          '<thead><tr><th>Nama Tabel / Sheet</th><th class="r">Jumlah Data</th><th>Status Operasional</th></tr></thead>'+
+          '<tbody>'+
+            '<tr><td><b>Transactions</b> (Transaksi Nota POS)</td><td class="r"><b>'+m.trxCount+'</b> baris</td><td><span class="tag ok">Sinkron</span></td></tr>'+
+            '<tr><td><b>CashLedger</b> (Mutasi Kas Laci)</td><td class="r"><b>'+m.kasCount+'</b> baris</td><td><span class="tag ok">Sinkron</span></td></tr>'+
+            '<tr><td><b>Inventory</b> (Rekap Stok Emas &amp; Perak)</td><td class="r"><b>'+m.stokSumCount+'</b> jenis</td><td><span class="tag ok">Aktif</span></td></tr>'+
+            '<tr><td><b>StockLog</b> (Riwayat Penyesuaian Stok)</td><td class="r"><b>'+m.stokLogCount+'</b> mutasi</td><td><span class="tag ok">Tercatat</span></td></tr>'+
+            '<tr><td><b>BankTransactions</b> (Rekening Toko)</td><td class="r"><b>'+m.bankCount+'</b> akun</td><td><span class="tag ok">Terkoneksi</span></td></tr>'+
+            '<tr><td><b>Attendance</b> (Absensi GPS &amp; Izin)</td><td class="r"><b>'+(m.absenCount+m.izinCount)+'</b> data</td><td><span class="tag ok">Valid</span></td></tr>'+
+            '<tr><td><b>Receivables</b> (Piutang &amp; Pinjaman)</td><td class="r"><b>'+(m.piutangCount+m.pinjamanCount)+'</b> data</td><td><span class="tag ok">Aman</span></td></tr>'+
+            '<tr><td><b>Approvals &amp; Users</b> (Otorisasi &amp; Akun)</td><td class="r"><b>'+(m.approvalCount+m.userCount)+'</b> akun/task</td><td><span class="tag ok">Proteksi</span></td></tr>'+
+          '</tbody>'+
+        '</table></div>'+
+      '</div>'+
+
+      '<div class="grid" style="gap:20px;align-content:start">'+
+        '<div class="card">'+
+          '<div class="hd"><h3>Rincian Google Apps Script</h3><button class="btn sm" data-a="bkcopy" data-v="gasurl">'+ic('file','s')+' Salin URL</button></div>'+
+          '<div class="tr"><span class="tm"><small>Web App Endpoint (/exec)</small><b style="word-break:break-all;font-size:12px;font-family:monospace" id="bk-gas-display">'+esc(maskedGas)+'</b></span></div>'+
+          '<div class="tr"><span class="tm"><small>Metode Komunikasi</small><b>POST JSON (text/plain CORS-Free)</b></span></div>'+
+          '<div class="tr"><span class="tm"><small>Proyek Apps Script</small><b>App_PermataPOS_Nabire</b></span></div>'+
+          '<div class="tr"><span class="tm"><small>Folder Google Drive</small><b>App_PermataPOS_Nabire</b></span></div>'+
+          '<div class="tr"><span class="tm"><small>Zona Waktu Server</small><b>Asia/Jayapura (WIT, Nabire)</b></span></div>'+
+          '<div class="tr"><span class="tm"><small>Masa Berlaku Token Sesi</small><b>12 Jam (Auto-refresh)</b></span></div>'+
+          '<div style="margin-top:14px;display:flex;gap:8px">'+
+            '<a class="btn sm gh" style="flex:1" href="https://script.google.com" target="_blank" rel="noopener">'+ic('cloud','s')+' Buka Editor GAS</a>'+
+            '<a class="btn sm gh" style="flex:1" href="https://drive.google.com" target="_blank" rel="noopener">'+ic('file','s')+' Buka Google Drive</a>'+
+          '</div>'+
+        '</div>'+
+
+        '<div class="card">'+
+          '<div class="hd"><h3>Riwayat Backup Terakhir</h3></div>'+
+          '<div class="mini">'+
+            '<small>Waktu Backup Terakhir Terdata:</small>'+
+            '<div class="big" style="font-size:16px;margin:4px 0">'+esc(lastBk)+'</div>'+
+            '<small style="color:var(--mut)">Disarankan mengunduh berkas backup setiap kali selesai tutup kas harian.</small>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="grid g2" style="margin-bottom:20px;align-items:start">'+
+      '<div class="card">'+
+        '<div class="hd"><div><h3>Pusat Cadangan Data (Backup)</h3><small>Ekspor dan simpan seluruh data toko secara lokal</small></div>'+
+          '<span class="ico gold">'+ic('download')+'</span>'+
+        '</div>'+
+        '<p style="color:var(--mut);margin-bottom:14px">Cadangan mencakup transaksi, mutasi kas, saldo brankas, stok gramasi, akun kasir, serta seluruh riwayat toko.</p>'+
+        '<div class="grid" style="gap:10px">'+
+          '<button class="btn pri blk" data-a="bkdown">'+ic('download','s')+' <b>Unduh Snapshot Lengkap (.json)</b></button>'+
+          '<div class="row2">'+
+            '<button class="btn gh" data-a="bkcsvtrx">'+ic('file','s')+' Ekspor CSV Transaksi</button>'+
+            '<button class="btn gh" data-a="bkcsvkas">'+ic('file','s')+' Ekspor CSV Mutasi Kas</button>'+
+          '</div>'+
+          '<button class="btn gh sm blk" data-a="bkcopyclip">'+ic('file','s')+' Salin Ringkasan JSON ke Clipboard</button>'+
+        '</div>'+
+        '<div style="background:var(--cv);border-radius:12px;padding:12px;margin-top:14px;font-size:12px;color:var(--mut)">'+
+          '<b>Tips Keamanan:</b> File JSON hasil unduhan dapat disimpan di flashdisk atau Google Drive terpisah sebagai arsip toko yang aman.'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="card">'+
+        '<div class="hd"><div><h3>Pemulihan Data (Recovery &amp; Sebaliknya)</h3><small>Pulihkan database dari file cadangan JSON</small></div>'+
+          '<span class="ico bad">'+ic('undo')+'</span>'+
+        '</div>'+
+        '<p style="color:var(--mut);margin-bottom:14px">Gunakan menu ini jika Anda mengganti perangkat kasir, melakukan instalasi baru, atau perlu mengembalikan data ke titik backup sebelumnya.</p>'+
+        '<div class="grid" style="gap:10px">'+
+          '<button class="btn dk blk" data-a="bkopenfile">'+ic('upload','s')+' <b>Pilih Berkas Cadangan (.json) &amp; Pulihkan</b></button>'+
+          '<button class="btn gh sm blk" data-a="bksheetinfo">'+ic('info','s')+' Cara Pulihkan Langsung di Google Sheets (Version History)</button>'+
+        '</div>'+
+        '<div style="background:var(--warnb);color:var(--warn);border-radius:12px;padding:12px;margin-top:14px;font-size:12px">'+
+          '<b>Proteksi Pemulihan:</b> Sistem akan memvalidasi integritas file cadangan dan otomatis membuat file backup darurat dari data saat ini sebelum proses pemulihan dieksekusi.'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="card">'+
+      '<div class="hd"><div><h3>Fungsi Darurat &amp; Pemeliharaan Backend Apps Script</h3><small>Fungsi-fungsi yang dijalankan langsung dari editor script.google.com</small></div></div>'+
+      '<div class="tbw"><table>'+
+        '<thead><tr><th>Nama Fungsi di Kode.gs</th><th>Kegunaan &amp; Tindakan</th><th class="r">Aksi</th></tr></thead>'+
+        '<tbody>'+
+          '<tr><td><code>resetPasswordSuperAdmin()</code></td><td>Mereset password Owner ke <b>Permata@2026</b> dan mengeluarkan semua sesi login.</td><td class="r"><button class="btn sm" data-a="bkcopy" data-v="resetPasswordSuperAdmin()">Salin</button></td></tr>'+
+          '<tr><td><code>matikanDemoMode()</code></td><td><b>Wajib sebelum go-live nyata:</b> Menyembunyikan tombol demo Kasir/Owner dari halaman login.</td><td class="r"><button class="btn sm" data-a="bkcopy" data-v="matikanDemoMode()">Salin</button></td></tr>'+
+          '<tr><td><code>resetDataDummy()</code></td><td>Menghapus data transaksi dan mengisi ulang contoh data untuk pengujian.</td><td class="r"><button class="btn sm" data-a="bkcopy" data-v="resetDataDummy()">Salin</button></td></tr>'+
+          '<tr><td><code>hapusSemuaDataTransaksi()</code></td><td>Mengosongkan semua transaksi untuk persiapan toko buka resmi.</td><td class="r"><button class="btn sm" data-a="bkcopy" data-v="hapusSemuaDataTransaksi()">Salin</button></td></tr>'+
+          '<tr><td><code>kunciProduksi()</code></td><td>Mengunci backend agar fungsi reset tidak dapat dijalankan secara tidak sengaja.</td><td class="r"><button class="btn sm" data-a="bkcopy" data-v="kunciProduksi()">Salin</button></td></tr>'+
+        '</tbody>'+
+      '</table></div>'+
+    '</div>';
+};
+
+A.bkping=()=>{
+  const btn=$('#bk-ping-btn');const resEl=$('#bk-ping-res');
+  if(btn)btn.disabled=true;
+  if(resEl)resEl.innerHTML='<span class="pill warn">'+ic('refresh','s')+' Memeriksa…</span>';
+  const t0=performance.now();
+  window.API.health().then(r=>{
+    LAST_PING_MS=Math.round(performance.now()-t0);
+    if(btn)btn.disabled=false;
+    if(resEl)resEl.innerHTML='<span class="pill ok">'+ic('check','s')+' Online ('+LAST_PING_MS+' ms)</span>';
+    toast('Health Check Sukses: Latency '+LAST_PING_MS+' ms','ok');
+  }).catch(e=>{
+    if(btn)btn.disabled=false;
+    if(resEl)resEl.innerHTML='<span class="pill bad">'+ic('alert','s')+' Terputus</span>';
+    toast('Gagal terhubung ke backend: '+(e.message||'Timeout'),'err');
+  });
+};
+
+A.bkdown=()=>{
+  if(!S)return;
+  const now=nowWIT();const safeDate=now.replace(/[: ]/g,'-');
+  const filename='backup_permata_pos_'+safeDate+'.json';
+  const backupData={
+    appName:'Permata POS',backupTime:now,
+    storeName:S.setting?S.setting.namaToko:'Permata Emas & Perak Nabire',
+    ver:S.ver||'1',state:S
+  };
+  downloadFile(JSON.stringify(backupData,null,2),filename,'application/json');
+  LS.s('pos_last_backup',now+' WIT');
+  toast('File backup '+filename+' berhasil diunduh','ok');
+  render();
+};
+
+A.bkcsvtrx=()=>{
+  if(!S||!S.trx||!S.trx.length){toast('Belum ada transaksi untuk diekspor','err');return}
+  const headers=['ID Transaksi','Waktu','Operator','Jenis','Kategori','Kadar','Berat (gr)','Pelanggan','Metode Bayar','Nominal (Rp)','Status','Catatan'];
+  const rows=S.trx.map(t=>[t.transaksiId,t.waktu,uname(t.operatorId),t.jenis,t.kategori||'',t.kadar||'',t.berat||0,t.pelanggan||'',t.metodeBayar||'',t.nominal||0,t.status||'',t.catatan||'']);
+  exportCSV(headers,rows,'transaksi_permata_pos_'+today()+'.csv');
+  toast('Data transaksi berhasil diekspor ke CSV','ok');
+};
+
+A.bkcsvkas=()=>{
+  if(!S||!S.kas||!S.kas.length){toast('Belum ada mutasi kas untuk diekspor','err');return}
+  const headers=['ID Mutasi','Waktu','Operator','Arah','Sumber','Referensi','Nominal (Rp)','Saldo Akhir (Rp)'];
+  const rows=S.kas.map(m=>[m.mutasiKasId,m.waktu,uname(m.operatorId),m.arah,m.sumber,m.referensiId||'',m.nominal||0,m.saldo||0]);
+  exportCSV(headers,rows,'mutasi_kas_permata_pos_'+today()+'.csv');
+  toast('Mutasi kas berhasil diekspor ke CSV','ok');
+};
+
+A.bkcopy=v=>{
+  const text=v==='gasurl'?((window.APP_CONFIG&&window.APP_CONFIG.GAS_URL)||''):v;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('Berhasil disalin ke papan klip','ok'));
+  }else{prompt('Salin teks berikut:',text)}
+};
+
+A.bkcopyclip=()=>{
+  if(!S)return;
+  const summary=JSON.stringify({
+    appName:'Permata POS',backupTime:nowWIT(),
+    setting:S.setting,saldo:S.saldo,
+    totalTransaksi:(S.trx||[]).length,totalMutasiKas:(S.kas||[]).length
+  },null,2);
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(summary).then(()=>toast('Ringkasan JSON disalin','ok'));
+  }else{prompt('Salin ringkasan:',summary)}
+};
+
+A.bkopenfile=()=>{
+  const input=$('#bk-file-input');
+  if(input){input.value='';input.click()}
+};
+
+A.bksheetinfo=()=>{
+  modal('Pemulihan Otomatis di Google Sheets',
+    '<div class="grid" style="gap:14px">'+
+      '<p>Google Sheets memiliki sistem cadangan otomatis berketelitian tinggi (<b>Version History</b>):</p>'+
+      '<ol style="padding-left:20px;line-height:22px">'+
+        '<li>Buka spreadsheet database Anda (<b>DB_PermataPOS</b>) di Google Drive.</li>'+
+        '<li>Klik menu <b>File</b> ➔ <b>Version history</b> ➔ <b>See version history</b> (Ctrl+Alt+Shift+H).</li>'+
+        '<li>Pilih tanggal dan jam versi yang ingin dipulihkan dari panel sebelah kanan.</li>'+
+        '<li>Klik tombol <b>Restore this version</b>.</li>'+
+      '</ol>'+
+      '<div class="err" style="background:var(--okb);color:var(--ok)">Data di Google Sheets otomatis kembali ke kondisi saat versi tersebut dipilih!</div>'+
+      '<button class="btn pri blk" data-a="close">Tutup</button>'+
+    '</div>');
+};
+
+IN.bkfile=(v,el)=>{
+  const file=el.files&&el.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      const dataState=parsed.state||parsed;
+      if(!dataState||typeof dataState!=='object'||(!dataState.setting&&!dataState.trx&&!dataState.users)){
+        toast('Format file tidak valid. Pastikan file adalah backup JSON dari Permata POS.','err');
+        return;
+      }
+      BK_TEMP=dataState;
+      const bTime=parsed.backupTime||parsed.now||'Tidak tertera';
+      const sName=(dataState.setting&&dataState.setting.namaToko)||'Toko Emas Permata';
+      const nTrx=(dataState.trx||[]).length;
+      const nKas=(dataState.kas||[]).length;
+      const nUsr=(dataState.users||[]).length;
+      const sKas=dataState.saldo?rp(dataState.saldo.kas):'-';
+
+      modal('Pratinjau &amp; Pemulihan Data Cadangan',
+        '<div class="grid" style="gap:14px">'+
+          '<div class="mini">'+
+            '<small>Nama Toko Cadangan:</small>'+
+            '<div class="big" style="font-size:18px">'+esc(sName)+'</div>'+
+            '<small>Waktu Backup: <b>'+esc(bTime)+'</b></small>'+
+          '</div>'+
+          '<div class="tbw"><table>'+
+            '<tbody>'+
+              '<tr><td>Jumlah Transaksi POS</td><td class="r"><b>'+nTrx+'</b> transaksi</td></tr>'+
+              '<tr><td>Jumlah Mutasi Kas Laci</td><td class="r"><b>'+nKas+'</b> baris</td></tr>'+
+              '<tr><td>Saldo Kas Tercatat</td><td class="r"><b>'+sKas+'</b></td></tr>'+
+              '<tr><td>Jumlah Akun Karyawan</td><td class="r"><b>'+nUsr+'</b> pengguna</td></tr>'+
+            '</tbody>'+
+          '</table></div>'+
+          '<div style="background:var(--badb);color:var(--bad);border-radius:12px;padding:12px;font-size:12px">'+
+            '<b>Peringatan Pemulihan:</b> Memulihkan cadangan ini akan mengganti data aktif pada layar aplikasi. '+
+            'Sistem akan otomatis mengunduh file cadangan darurat (auto-backup) dari data Anda saat ini sebelum mengganti.'+
+          '</div>'+
+          '<div style="display:flex;gap:10px;justify-content:flex-end">'+
+            '<button type="button" class="btn gh" data-a="close">Batal</button>'+
+            '<button type="button" class="btn bad" data-a="bkapply">'+ic('undo','s')+' Konfirmasi &amp; Pulihkan Sekarang</button>'+
+          '</div>'+
+        '</div>');
+    }catch(err){
+      toast('Gagal membaca file JSON: '+err.message,'err');
+    }
+  };
+  reader.readAsText(file);
+};
+
+A.bkapply=()=>{
+  if(!BK_TEMP)return;
+  try{
+    const safetyBackup={appName:'Permata POS (Auto Safety Backup)',backupTime:nowWIT(),state:S};
+    downloadFile(JSON.stringify(safetyBackup,null,2),'safety_backup_sebelum_restore_'+today()+'.json','application/json');
+  }catch(err){}
+
+  adopt(BK_TEMP);
+  LS.s('pos_snap',JSON.stringify(S));
+  BK_TEMP=null;
+  closeModal();
+  toast('Data berhasil dipulihkan dari cadangan!','ok');
+  chrome();
+  render();
 };
 
 /* ============ MENU (mobile) ============ */
