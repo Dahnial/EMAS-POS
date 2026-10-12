@@ -468,7 +468,16 @@ textarea.inp { min-height: 76px; resize: vertical; }
   #topbar .desk-chip-extra { display: none; }
 }
 
+/* Utility Classes */
+.desk-only { display: block; }
+.mobile-only { display: none; }
+.custom-logo { overflow: hidden; background: #fff !important; padding: 2px; }
+.custom-logo img { width: 100%; height: 100%; object-fit: contain; border-radius: 9px; display: block; }
+
 @media (max-width: 899px) {
+  .desk-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+
   #sidebar {
     transform: translateX(-100%);
     box-shadow: 10px 0 30px rgba(0,0,0,0.5);
@@ -487,7 +496,7 @@ textarea.inp { min-height: 76px; resize: vertical; }
     border-bottom: 1px solid var(--ln);
   }
   #sb-toggle { display: grid; }
-  #topbar .desk { display: none; }
+  #topbar .desk, .desk { display: none !important; }
   .me .nm { display: none; }
   .me { padding: 3px; }
   
@@ -496,27 +505,60 @@ textarea.inp { min-height: 76px; resize: vertical; }
   .wh-actions { width: 100%; justify-content: flex-start; }
   .wh-actions .btn { flex: 1; min-height: 42px; }
 
-  .fab-quick {
-    bottom: calc(76px + var(--sb));
-    right: 18px;
-    width: 52px; height: 52px;
-  }
-  main { padding: 14px 16px calc(96px + var(--sb)); }
+  /* Tombol floating di kanan bawah dihilangkan di smartphone sesuai permintaan */
+  .fab-quick { display: none !important; }
+  main { padding: 14px 16px calc(88px + var(--sb)); }
   
+  /* Modern Bottom Navigation Bar (UI/UX Pro Max) */
   #bnav {
     display: flex; position: fixed; left: 0; right: 0; bottom: 0;
-    background: #fff; border-top: 1px solid var(--ln);
-    padding: 6px 8px calc(6px + var(--sb));
-    z-index: 25; justify-content: space-around;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.04);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 6px 6px calc(6px + var(--sb));
+    z-index: 35; justify-content: space-around; align-items: flex-end;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    height: calc(58px + var(--sb));
+    box-sizing: border-box;
   }
-  #bnav button {
+  
+  .bnav-item {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; min-width: 56px; min-height: 48px; padding: 4px 8px; border-radius: 999px;
-    font-size: 11px; font-weight: 600; color: #52525b; text-align: center; position: relative;
+    gap: 3px; min-width: 54px; height: 46px; border-radius: 12px;
+    font-size: 10px; font-weight: 600; color: #71717A; text-align: center;
+    position: relative; transition: transform 0.1s ease, color 0.15s ease;
+    user-select: none;
   }
-  #bnav button.on { background: var(--gold); color: var(--ink); font-weight: 700; }
-  #bnav .cnt { position: absolute; top: 2px; right: 6px; background: var(--bad); color: #fff; border-radius: 9px; font-size: 9px; padding: 0 5px; }
+  .bnav-item:active { transform: scale(0.92); }
+  .bnav-item.on { color: var(--ink); font-weight: 700; }
+  .bnav-item.on .ic { stroke: var(--gold-d); stroke-width: 2.3; }
+  .bnav-item.on::after {
+    content: ''; position: absolute; bottom: -2px; width: 16px; height: 3px;
+    background: var(--gold); border-radius: 999px;
+  }
+  .bnav-item .cnt {
+    position: absolute; top: 1px; right: 8px; background: var(--bad);
+    color: #fff; border-radius: 9px; font-size: 9px; padding: 0 5px; min-width: 14px;
+  }
+
+  /* Tombol Tengah Timbul (+ Transaksi) */
+  .bnav-center-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    min-width: 60px; position: relative; margin-top: -24px;
+    transition: transform 0.12s ease; cursor: pointer; border: 0; background: none;
+    user-select: none;
+  }
+  .bnav-center-btn:active .bnav-circle-gold { transform: scale(0.92); }
+  .bnav-circle-gold {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, #F5B301 0%, #d99f00 100%);
+    color: #121212; display: grid; place-items: center;
+    box-shadow: 0 8px 20px -2px rgba(245, 179, 1, 0.65), 0 2px 6px rgba(0,0,0,0.12);
+    border: 3px solid #ffffff; transition: transform 0.12s ease;
+  }
+  .bnav-center-btn span {
+    font-size: 10px; font-weight: 700; color: #18181b; margin-top: 3px;
+  }
 
   .g4, .g3 { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .g2 { grid-template-columns: 1fr; }
@@ -542,6 +584,112 @@ textarea.inp { min-height: 76px; resize: vertical; }
 }
 .lgm h1 { font-size: 22px; line-height: 28px; }
 .lgm p { color: #a1a1aa; }
+
+/* ============ LAPORAN & REKAP MOBILE RESPONSIVE STYLES ============ */
+.rep-day-cards { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.rep-day-card {
+  background: #ffffff;
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+.rep-day-card:hover { border-color: rgba(245, 179, 1, 0.5); }
+.rep-day-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed var(--ln);
+  padding-bottom: 7px;
+}
+.rep-day-date {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.rep-day-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.rep-stat-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rep-stat-col small {
+  font-size: 10px;
+  color: var(--mut);
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.rep-stat-col .val {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rep-stat-col .val-ok { color: #059669; }
+.rep-stat-col .val-bb { color: #d97706; }
+.rep-stat-col .val-op { color: #64748b; }
+
+/* Payment Methods Breakdown */
+.pay-meth-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ln);
+}
+.pay-meth-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.pay-meth-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.pay-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: var(--ln2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.pay-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #F5B301 0%, #d99f00 100%);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Logo Setting Preview */
+.logo-setting-preview {
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  border: 2px dashed rgba(245, 179, 1, 0.5);
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+}
+.logo-setting-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
 
 @media (max-width: 420px) {
   .g4, .g3 { grid-template-columns: 1fr; }

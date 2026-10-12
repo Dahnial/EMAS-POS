@@ -48,7 +48,8 @@ edit:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
 tool:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9Z"/>',
 database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/>',
 server:'<rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>',
-upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>'
+upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+bluetooth:'<path d="m7 7 10 10-5 5V2l5 5L7 17"/>'
 };
 const ic=(n,c)=>'<svg class="ic '+(c||'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(IC[n]||'')+'</svg>';
 function hydrateIcons(root){$$('[data-ic]',root).forEach(e=>{if(!e.firstChild)e.innerHTML=ic(e.dataset.ic,e.classList.contains('s')?'s':'')})}
@@ -70,7 +71,7 @@ const BLN=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','De
 const tgl=s=>{if(!s)return '-';const p=String(s).slice(0,10).split('-');return (+p[2])+' '+BLN[p[1]-1]+' '+p[0]};
 const jam=s=>String(s||'').slice(11,16);
 const hari=s=>HR[new Date(s+'T00:00:00Z').getUTCDay()];
-const jenisLbl={PENJUALAN:'Penjualan',BUYBACK:'Buyback',JASA:'Jasa',PENGELUARAN_OPS:'Pengeluaran'};
+const jenisLbl={PENJUALAN:'Penjualan',BUYBACK:'Buyback',JASA:'Pemasukan',PENGELUARAN_OPS:'Pengeluaran'};
 
 /* ============ STATE ============ */
 let S=null,TOKEN=null,CUR='dashboard',Q=[],busy=false,pend=null,needResync=false,RJ='',DR=7,RC=null,TF={},AB={};
@@ -221,7 +222,11 @@ function label(id){if(id==='menu')return 'Menu';const m=MENU.find(x=>x[0]===id);
 function chrome(){
   if(!S||!$('#sidebar'))return;
   const n=pending().length, o=isO();
-  $('#sidebar').innerHTML='<div class="brand"><div class="logo">'+ic('gem','l')+'</div><div><b>'+esc(S.setting.namaToko.replace('Toko Emas & Perak ','Toko '))+'</b><small>EMAS &amp; PERAK POS</small></div></div>'+
+  const logoSrc=(S.setting&&S.setting.logoToko)||LS.g('pos_logo_toko');
+  const logoHtml=logoSrc
+    ? '<div class="logo custom-logo"><img src="'+esc(logoSrc)+'" alt="Logo Toko"></div>'
+    : '<div class="logo">'+ic('gem','l')+'</div>';
+  $('#sidebar').innerHTML='<div class="brand">'+logoHtml+'<div><b>'+esc(S.setting.namaToko.replace('Toko Emas & Perak ','Toko '))+'</b><small>EMAS &amp; PERAK POS</small></div></div>'+
    '<div style="background:rgba(255,255,255,.05);border-radius:14px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid rgba(255,255,255,.08)" data-a="myphoto" title="Klik untuk ubah foto profil">'+
      uAvatar(S.me,'sm')+
      '<div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px">'+esc(S.me.nama)+'</b><small style="color:#a1a1aa">'+(o?'Owner / Superadmin':'Kasir / Karyawan')+'</small></div>'+
@@ -231,18 +236,26 @@ function chrome(){
    '<nav class="nav" aria-label="Menu utama">'+allowed().map(m=>'<button class="nv'+(m[0]===CUR?' on':'')+'" data-a="go" data-v="'+m[0]+'">'+ic(m[3])+'<span>'+esc(m[0]==='absensi'&&o?'Absensi GPS Karyawan':m[1])+'</span>'+(m[0]==='approval'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>').join('')+'</nav>'+
    '<div class="sbf"><div class="sync"><i></i><span>Tersinkron</span></div><button class="nv" data-a="logout">'+ic('logout')+'<span>Keluar</span></button></div>';
   const hr=+nowWIT().slice(11,13);
-  $('#topbar').innerHTML='<div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">'+
+  const logoTopHtml=logoSrc?'<img src="'+esc(logoSrc)+'" style="width:28px;height:28px;border-radius:7px;object-fit:contain;background:#fff;border:1px solid rgba(0,0,0,.08);margin-right:2px;flex-shrink:0" alt="Logo">':'';
+  $('#topbar').innerHTML='<div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">'+
     '<button id="sb-toggle" class="ibtn" data-a="sbtoggle" aria-label="Buka Menu" style="margin-right:2px">'+ic('menu')+'</button>'+
+    logoTopHtml+
     '<div class="ttl"><b id="tt-t">'+esc(label(CUR))+'</b><small>'+esc(S.setting.namaToko)+' • Nabire</small></div>'+
    '</div>'+
    '<div class="topbar-actions">'+
     '<div class="chips desk"><span class="chip"><i style="width:8px;height:8px;border-radius:50%;background:var(--ok)"></i>Toko Buka • '+(hr<13?'Shift Pagi':'Shift Siang')+'</span><span class="chip gold desk-chip-extra">'+ic('up','s')+' Spot Emas '+rp(S.setting.spotEmas)+'/gr</span><span class="pill syncchip ok">Sheets Sync</span></div>'+
-    '<button class="btn sm pri" data-a="trxnew" data-v="PENJUALAN" style="display:inline-flex;gap:6px;align-items:center;font-weight:700;box-shadow:0 4px 14px -3px rgba(245,179,1,.65)" title="Akses Cepat Transaksi Baru">'+ic('plus','s')+' <span class="desk">Transaksi Baru</span></button>'+
+    '<button class="btn sm pri desk" data-a="trxnew" data-v="PENJUALAN" style="display:inline-flex;gap:6px;align-items:center;font-weight:700;box-shadow:0 4px 14px -3px rgba(245,179,1,.65)" title="Akses Cepat Transaksi Baru">'+ic('plus','s')+' <span>Transaksi Baru</span></button>'+
     '<button class="ibtn" data-a="bell" aria-label="Notifikasi">'+ic('bell')+(n?'<span class="dot">'+n+'</span>':'')+'</button>'+
     '<div class="me" data-a="myphoto" style="cursor:pointer" title="Klik untuk ubah foto profil"><div class="nm"><b>'+esc(S.me.nama)+'</b><small>'+(o?'Owner / Superadmin':'Kasir')+'</small></div>'+uAvatar(S.me)+'</div>'+
    '</div>';
-  const bn=BN[o?'O':'K'];
-  $('#bnav').innerHTML=bn.map(id=>{const m=MENU.find(x=>x[0]===id),on=id===CUR||(id==='menu'&&!bn.includes(CUR));return '<button class="'+(on?'on':'')+'" data-a="go" data-v="'+id+'" aria-label="'+esc(label(id))+'">'+ic(m?m[3]:'menu')+'<span>'+(m?m[2]:'Menu')+'</span>'+(id==='menu'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>'}).join('');
+  const bn=o?['dashboard','kasir','TRX_CENTER','stok','menu']:['dashboard','kasir','TRX_CENTER','absensi','menu'];
+  $('#bnav').innerHTML=bn.map(id=>{
+    if(id==='TRX_CENTER'){
+      return '<button class="bnav-center-btn" data-a="trxnew" data-v="PENJUALAN" aria-label="Transaksi Baru"><div class="bnav-circle-gold">'+ic('plus')+'</div><span>+ Transaksi</span></button>';
+    }
+    const m=MENU.find(x=>x[0]===id),on=id===CUR||(id==='menu'&&!bn.includes(CUR));
+    return '<button class="bnav-item '+(on?'on':'')+'" data-a="go" data-v="'+id+'" aria-label="'+esc(label(id))+'">'+ic(m?m[3]:'menu')+'<span>'+(m?m[2]:'Menu')+'</span>'+(id==='menu'&&n?'<em class="cnt" style="font-style:normal">'+n+'</em>':'')+'</button>';
+  }).join('');
   setSync();
   hydrateIcons();
 }
@@ -438,11 +451,11 @@ function trxList(){
 }
 P.kasir=function(){
   FILT.p=FILT.p||'today';
-  const tl=[['PENJUALAN','Penjualan','gem','pri'],['BUYBACK','Buyback','undo',''],['JASA','Jasa','tool',''],['PENGELUARAN_OPS','Pengeluaran','wallet','']];
-  return '<div class="ph"><div><h1>Kasir Transaksi POS</h1><p>Catat penjualan, buyback, jasa, dan pengeluaran. Tersimpan instan, sinkron di latar belakang.</p></div></div>'+
+  const tl=[['PENJUALAN','Penjualan','gem','pri'],['BUYBACK','Buyback','undo',''],['JASA','Pemasukan','tool',''],['PENGELUARAN_OPS','Pengeluaran','wallet','']];
+  return '<div class="ph"><div><h1>Kasir Transaksi POS</h1><p>Catat penjualan emas/perak, buyback, pemasukan (jasa &amp; lainnya), dan pengeluaran.</p></div></div>'+
    '<div class="tiles" style="margin-bottom:20px">'+tl.map(t=>'<button class="tile '+t[3]+'" data-a="trxnew" data-v="'+t[0]+'"><span class="ico">'+ic(t[2])+'</span>'+t[1]+'</button>').join('')+'</div>'+
    '<div class="card"><div class="hd"><h3>Riwayat Transaksi</h3><div class="seg" id="fp">'+[['today','Hari ini'],['7','7 hari'],['all','Semua']].map(x=>'<button class="'+(FILT.p===x[0]?'on':'')+'" data-a="fp" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div></div>'+
-   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input class="inp" style="flex:1;min-width:160px" placeholder="Cari nota, barang, pelanggan…" value="'+esc(FILT.q)+'" data-in="q" aria-label="Cari transaksi"><div class="seg" id="fj">'+[['ALL','Semua'],['PENJUALAN','Jual'],['BUYBACK','Buyback'],['JASA','Jasa'],['PENGELUARAN_OPS','Keluar']].map(x=>'<button class="'+(FILT.j===x[0]?'on':'')+'" data-a="fj" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div></div><div id="trx-list">'+trxList()+'</div></div>';
+   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><input class="inp" style="flex:1;min-width:160px" placeholder="Cari nota, barang, pelanggan…" value="'+esc(FILT.q)+'" data-in="q" aria-label="Cari transaksi"><div class="seg" id="fj">'+[['ALL','Semua'],['PENJUALAN','Jual'],['BUYBACK','Buyback'],['JASA','Pemasukan'],['PENGELUARAN_OPS','Keluar']].map(x=>'<button class="'+(FILT.j===x[0]?'on':'')+'" data-a="fj" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div></div><div id="trx-list">'+trxList()+'</div></div>';
 };
 IN.q=v=>{FILT.q=v;const e=$('#trx-list');if(e)e.innerHTML=trxList()};
 A.fj=v=>{FILT.j=v;RJ='';render()};A.fp=v=>{FILT.p=v;RJ='';render()};
@@ -517,24 +530,54 @@ F.bank=function(arah,rek){
 
 /* ============ ABSENSI & IZIN ============ */
 const jarakM=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b),h=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(h)))};
+
+function cleanupExpiredAbsensiPhotos(){
+  const now=Date.now(),LIMIT=48*3600*1000;
+  (S&&S.absensi||[]).forEach(a=>{
+    const ts=a.jamMasuk?a.jamMasuk.replace(' ','T'):a.tanggal+'T00:00:00';
+    const t=new Date(ts).getTime();
+    if(!isNaN(t)&&(now-t)>LIMIT){
+      a.fotoSelfieMasuk='';
+      LS.d('pos_selfie_'+(a.absensiId||a.userId));
+    }
+  });
+}
+
 P.absensi=function(){
+  cleanupExpiredAbsensiPhotos();
   const o=isO(),td=today();
   if(o){
     const rows=S.absensi.slice().sort((a,b)=>String(b.jamMasuk).localeCompare(String(a.jamMasuk))).slice(0,60),iz=S.izin.slice().reverse().slice(0,15);
-    return '<div class="ph"><div><h1>Absensi GPS Karyawan</h1><p>Rekap selfie + lokasi. Pengajuan izin diproses di Pusat Persetujuan.</p></div></div>'+
-     '<div class="card" style="margin-bottom:20px"><div class="hd"><h3>Rekap Absensi</h3></div><div class="tbw"><table><thead><tr><th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Status</th><th class="r">Jarak</th><th>Selfie</th></tr></thead><tbody>'+
-     (rows.map(a=>'<tr><td>'+tgl(a.tanggal)+'</td><td>'+uBadge(a.userId)+'</td><td>'+jam(a.jamMasuk)+'</td><td>'+(jam(a.jamPulang)||'-')+'</td><td><span class="tag '+(a.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(a.statusMasuk).replace('_',' ')+'</span></td><td class="r">'+(a.jarakMeter!==''?a.jarakMeter+' m':'-')+'</td><td>'+(a.fotoSelfieMasuk?'<a href="'+esc(a.fotoSelfieMasuk)+'" target="_blank" rel="noopener">Lihat</a>':'-')+'</td></tr>').join('')||'<tr><td colspan="7">'+empty('Belum ada absensi.')+'</td></tr>')+'</tbody></table></div></div>'+
+    return '<div class="ph"><div><h1>Absensi GPS Karyawan</h1><p>Rekap selfie kamera langsung + verifikasi GPS. Foto tersimpan dan terhapus otomatis 2 x 24 jam.</p></div></div>'+
+     '<div class="card" style="margin-bottom:20px"><div class="hd"><div><h3>Rekap Absensi Karyawan</h3><small>Penyimpanan foto hemat kuota otomatis kedaluwarsa 48 jam</small></div></div><div class="tbw"><table><thead><tr><th>Tanggal</th><th>Karyawan</th><th>Masuk</th><th>Pulang</th><th>Status</th><th class="r">Jarak</th><th>Foto Selfie</th></tr></thead><tbody>'+
+     (rows.map(a=>{
+       const ts=a.jamMasuk?a.jamMasuk.replace(' ','T'):a.tanggal+'T00:00:00';
+       const age=Date.now()-new Date(ts).getTime();
+       const sisaJam=Math.max(0,Math.round((48*3600*1000-age)/3600000));
+       const photo=a.fotoSelfieMasuk||LS.g('pos_selfie_'+(a.absensiId||a.userId));
+       const photoCol=(photo&&sisaJam>0)?'<button class="btn xs gh" data-a="viewselfie" data-v="'+esc(photo)+'|'+esc(uname(a.userId))+'|'+tgl(a.tanggal)+' '+jam(a.jamMasuk)+'">'+ic('camera','s')+' Lihat ('+sisaJam+'j)</button>':'<small style="color:var(--mut)">Terhapus (&gt;48j)</small>';
+       return '<tr><td>'+tgl(a.tanggal)+'</td><td>'+uBadge(a.userId)+'</td><td>'+jam(a.jamMasuk)+'</td><td>'+(jam(a.jamPulang)||'-')+'</td><td><span class="tag '+(a.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(a.statusMasuk).replace('_',' ')+'</span></td><td class="r">'+(a.jarakMeter!==''?a.jarakMeter+' m':'-')+'</td><td>'+photoCol+'</td></tr>';
+     }).join('')||'<tr><td colspan="7">'+empty('Belum ada absensi.')+'</td></tr>')+'</tbody></table></div></div>'+
      '<div class="card"><div class="hd"><h3>Pengajuan Izin / Sakit / Cuti</h3></div>'+(iz.length?iz.map(i=>'<div class="tr"><span class="ico gold">'+ic('cal')+'</span><span class="tm"><b>'+uBadge(i.userId)+' · '+i.jenis+'</b><small>'+tgl(i.tanggalMulai)+(i.tanggalSelesai!==i.tanggalMulai?' – '+tgl(i.tanggalSelesai):'')+' · '+esc(i.alasan)+'</small></span><span class="tag '+(i.status==='DISETUJUI'?'ok':i.status==='DITOLAK'?'bad':'warn')+'">'+i.status+'</span></div>').join(''):empty('Belum ada pengajuan.'))+'</div>';
   }
   const me=S.absensi.find(a=>a.userId===S.me.userId&&a.tanggal===td),hist=S.absensi.filter(a=>a.userId===S.me.userId).slice().reverse().slice(0,14),iz=S.izin.slice().reverse().slice(0,10);
-  return '<div class="ph"><div><h1>Absensi &amp; Izin</h1><p>Absen wajib selfie dan berada di radius toko ('+S.setting.radiusAbsensi+' m).</p></div></div>'+
+  return '<div class="ph"><div><h1>Absensi &amp; Izin</h1><p>Absen wajib selfie kamera langsung dan berada di radius toko ('+S.setting.radiusAbsensi+' m). Foto tersimpan aman &amp; otomatis terhapus 48 jam.</p></div></div>'+
    '<div class="grid g2" style="margin-bottom:20px"><div class="card"><div class="hd"><h3>Hari Ini · '+tgl(td)+'</h3></div>'+
-   (me?'<div class="mini"><span class="tag '+(me.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(me.statusMasuk).replace('_',' ')+'</span><div class="big">Masuk '+jam(me.jamMasuk)+'</div><small>'+(me.jamPulang?'Pulang '+jam(me.jamPulang):'Belum absen pulang')+'</small></div>'+(me.jamPulang?'':'<button class="btn dk blk" style="margin-top:12px" data-a="abpl">Absen Pulang</button>'):'<div class="mini"><div class="big">Belum absen</div><small>Jam masuk standar '+esc(S.setting.jamMasuk)+'</small></div><button class="btn pri blk" style="margin-top:12px" data-a="abnew">'+ic('camera','s')+' Absen Masuk (Selfie + GPS)</button>')+'</div>'+
+   (me?'<div class="mini"><span class="tag '+(me.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(me.statusMasuk).replace('_',' ')+'</span><div class="big">Masuk '+jam(me.jamMasuk)+'</div><small>'+(me.jamPulang?'Pulang '+jam(me.jamPulang):'Belum absen pulang')+'</small></div>'+(me.jamPulang?'':'<button class="btn dk blk" style="margin-top:12px" data-a="abpl">Absen Pulang</button>'):'<div class="mini"><div class="big">Belum absen</div><small>Jam masuk standar '+esc(S.setting.jamMasuk)+'</small></div><button class="btn pri blk" style="margin-top:12px" data-a="abnew">'+ic('camera','s')+' Absen Masuk (Kamera Langsung + GPS)</button>')+'</div>'+
    '<div class="card"><div class="hd"><h3>Pengajuan Izin</h3><button class="btn sm pri" data-a="izin">'+ic('plus','s')+' Ajukan</button></div>'+(iz.length?iz.map(i=>'<div class="tr"><span class="tm"><b>'+i.jenis+' · '+tgl(i.tanggalMulai)+'</b><small>'+esc(i.alasan)+'</small></span><span class="tag '+(i.status==='DISETUJUI'?'ok':i.status==='DITOLAK'?'bad':'warn')+'">'+i.status+'</span></div>').join(''):empty('Belum ada pengajuan.'))+'</div></div>'+
-   '<div class="card"><div class="hd"><h3>Riwayat Absensi</h3></div>'+(hist.length?hist.map(a=>'<div class="tr"><span class="ico '+(a.statusMasuk==='TERLAMBAT'?'gold':'ok')+'">'+ic('pin')+'</span><span class="tm"><b>'+tgl(a.tanggal)+'</b><small>Masuk '+jam(a.jamMasuk)+' · Pulang '+(jam(a.jamPulang)||'-')+'</small></span><span class="tag '+(a.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(a.statusMasuk).replace('_',' ')+'</span></div>').join(''):empty('Belum ada riwayat.'))+'</div>';
+   '<div class="card"><div class="hd"><h3>Riwayat Absensi Saya</h3></div>'+(hist.length?hist.map(a=>'<div class="tr"><span class="ico '+(a.statusMasuk==='TERLAMBAT'?'gold':'ok')+'">'+ic('pin')+'</span><span class="tm"><b>'+tgl(a.tanggal)+'</b><small>Masuk '+jam(a.jamMasuk)+' · Pulang '+(jam(a.jamPulang)||'-')+'</small></span><span class="tag '+(a.statusMasuk==='TERLAMBAT'?'warn':'ok')+'">'+String(a.statusMasuk).replace('_',' ')+'</span></div>').join(''):empty('Belum ada riwayat.'))+'</div>';
 };
 A.abnew=()=>F.absen();
 A.abpl=()=>{const m=S.absensi.find(a=>a.userId===S.me.userId&&a.tanggal===today());if(!m||m.jamPulang)return;mut('absenPulang',{},()=>{m.jamPulang=nowWIT()});toast('Absen pulang tercatat','ok')};
+A.viewselfie=v=>{
+  const p=v.split('|');
+  modal('Foto Selfie Absensi',
+    '<div style="text-align:center">'+
+      '<img src="'+esc(p[0])+'" alt="Selfie" style="width:100%;max-width:320px;border-radius:16px;box-shadow:var(--sh2);margin-bottom:12px">'+
+      '<div><b>'+esc(p[1]||'')+'</b><br><small style="color:var(--mut)">Waktu Absen: '+esc(p[2]||'')+' WIT</small></div>'+
+      '<small style="display:block;margin-top:8px;color:var(--mut)">Foto otomatis terhapus dari server dan perangkat setelah 2 x 24 jam.</small>'+
+    '</div>');
+};
 function abBtn(){const b=$('#ab-go');if(b)b.disabled=!(AB.ok&&AB.foto)}
 function abGps(){
   const t=$('#ab-t'),box=$('#ab-gps');if(!t)return;AB.ok=false;abBtn();t.textContent='Mencari lokasi GPS…';box.classList.add('warn');
@@ -547,20 +590,111 @@ function abGps(){
     abBtn();
   },()=>{const t2=$('#ab-t');if(t2)t2.textContent='Lokasi tidak tersedia. Izinkan akses lokasi di browser/HP (situs harus HTTPS).';abBtn()},{enableHighAccuracy:true,timeout:15000,maximumAge:10000});
 }
+function startAbsenCam(){
+  const video=$('#ab-video'),loadEl=$('#ab-cam-loading');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    if(loadEl)loadEl.textContent='Kamera langsung tidak didukung browser ini. Gunakan tombol Pilih Berkas di bawah.';
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:800}}})
+    .then(st=>{
+      AB.stream=st;
+      if(video){
+        video.srcObject=st;
+        video.onloadedmetadata=()=>{if(loadEl)loadEl.classList.add('hidden')};
+      }
+    })
+    .catch(()=>{
+      if(loadEl)loadEl.textContent='Izin kamera belum aktif. Klik tombol "Pilih Berkas" di bawah.';
+    });
+}
+function stopAbsenCam(){
+  if(AB.stream){
+    try{AB.stream.getTracks().forEach(t=>t.stop())}catch(e){}
+    AB.stream=null;
+  }
+}
 F.absen=function(){
-  AB={foto:null,ok:false};
-  modal('Absen Masuk','<div class="gps warn" id="ab-gps">'+ic('pin','s')+'<span id="ab-t">Mencari lokasi GPS…</span></div>'+
-   '<div class="photo"><img id="ab-img" class="hidden" alt="Pratinjau selfie"><div style="flex:1"><div class="lbl">Foto selfie *</div><button type="button" class="btn sm" style="margin-top:6px" data-a="abcam">'+ic('camera','s')+' Ambil Selfie</button></div></div>'+
-   '<input type="file" id="ab-f" accept="image/*" capture="user" class="hidden" data-in="abph">'+
-   '<button class="btn pri blk" id="ab-go" data-a="abgo" disabled>Kirim Absen Masuk</button><button type="button" class="btn gh blk sm" style="margin-top:8px" data-a="abgps">Cari ulang lokasi</button>');
+  AB={foto:null,ok:false,stream:null};
+  modal('Absen Masuk (Kamera Langsung + GPS)',
+    '<div class="gps warn" id="ab-gps">'+ic('pin','s')+'<span id="ab-t">Mencari lokasi GPS…</span></div>'+
+    '<div class="card" style="padding:14px;margin-bottom:14px;background:#161618;color:#fff;border-radius:18px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<b>Kamera Selfie Langsung</b><span class="tag gold" style="font-size:10px">Auto-Hapus 48 Jam</span>'+
+      '</div>'+
+      '<div id="ab-camera-box" style="position:relative;width:100%;max-width:300px;margin:0 auto;aspect-ratio:3/4;background:#000;border-radius:14px;overflow:hidden;display:grid;place-items:center">'+
+        '<video id="ab-video" autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>'+
+        '<img id="ab-img" class="hidden" alt="Hasil Selfie" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0">'+
+        '<canvas id="ab-canvas" class="hidden"></canvas>'+
+        '<div id="ab-cam-loading" style="color:#a1a1aa;font-size:12px;position:absolute;padding:14px;text-align:center">'+ic('camera')+'<br>Membuka kamera selfie…</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap">'+
+        '<button type="button" class="btn pri sm" id="ab-snap-btn" data-a="absnap">'+ic('camera','s')+' Ambil Foto Selfie</button>'+
+        '<button type="button" class="btn gh sm hidden" id="ab-retake-btn" data-a="abretake" style="color:#fff;border-color:rgba(255,255,255,.3)">'+ic('refresh','s')+' Ulangi Foto</button>'+
+        '<button type="button" class="btn gh sm" data-a="abcam" style="color:#a1a1aa;border-color:rgba(255,255,255,.2)">Pilih Berkas</button>'+
+      '</div>'+
+    '</div>'+
+    '<input type="file" id="ab-f" accept="image/*" capture="user" class="hidden" data-in="abph">'+
+    '<button class="btn pri blk" id="ab-go" data-a="abgo" disabled>Kirim Absen Masuk</button>'+
+    '<button type="button" class="btn gh blk sm" style="margin-top:8px" data-a="abgps">Cari Ulang Lokasi GPS</button>'+
+    '<small style="display:block;text-align:center;color:var(--mut);margin-top:10px">Foto selfie tersimpan ke database &amp; otomatis terhapus setelah 2 x 24 jam untuk hemat kuota penyimpanan.</small>');
   abGps();
+  startAbsenCam();
 };
-A.abcam=()=>$('#ab-f').click();A.abgps=()=>abGps();
-IN.abph=(v,el)=>{const f=el.files&&el.files[0];if(!f)return;compress(f).then(d=>{AB.foto=d;const i=$('#ab-img');i.src=d;i.classList.remove('hidden');abBtn()})};
+A.absnap=()=>{
+  const video=$('#ab-video'),canvas=$('#ab-canvas'),img=$('#ab-img');
+  if(!video||!video.videoWidth){$('#ab-f').click();return}
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  const data=canvas.toDataURL('image/jpeg',0.72);
+  AB.foto=data;
+  if(img){img.src=data;img.classList.remove('hidden')}
+  if(video)video.classList.add('hidden');
+  const sb=$('#ab-snap-btn'),rb=$('#ab-retake-btn');
+  if(sb)sb.classList.add('hidden');
+  if(rb)rb.classList.remove('hidden');
+  stopAbsenCam();
+  abBtn();
+};
+A.abretake=()=>{
+  AB.foto=null;
+  const video=$('#ab-video'),img=$('#ab-img');
+  if(img)img.classList.add('hidden');
+  if(video)video.classList.remove('hidden');
+  const sb=$('#ab-snap-btn'),rb=$('#ab-retake-btn');
+  if(sb)sb.classList.remove('hidden');
+  if(rb)rb.classList.add('hidden');
+  startAbsenCam();
+  abBtn();
+};
+A.abcam=()=>$('#ab-f').click();
+A.abgps=()=>abGps();
+IN.abph=(v,el)=>{
+  const f=el.files&&el.files[0];if(!f)return;
+  compress(f).then(d=>{
+    AB.foto=d;
+    const i=$('#ab-img'),v=$('#ab-video');
+    if(i){i.src=d;i.classList.remove('hidden')}
+    if(v)v.classList.add('hidden');
+    const sb=$('#ab-snap-btn'),rb=$('#ab-retake-btn');
+    if(sb)sb.classList.add('hidden');
+    if(rb)rb.classList.remove('hidden');
+    stopAbsenCam();
+    abBtn();
+  });
+};
 A.abgo=()=>{
-  if(!(AB.ok&&AB.foto))return;const jm=nowWIT().slice(11,16),late=jm>String(S.setting.jamMasuk||'08:30').slice(0,5);
-  mut('absenMasuk',{latitude:AB.lat,longitude:AB.lng,foto:{data:AB.foto}},()=>{S.absensi.push({absensiId:'TMP',tanggal:today(),userId:S.me.userId,jamMasuk:nowWIT(),fotoSelfieMasuk:'',statusMasuk:late?'TERLAMBAT':'TEPAT_WAKTU',jamPulang:'',latitude:AB.lat,longitude:AB.lng,jarakMeter:AB.d})});
-  closeModal();toast(late?'Absen masuk tercatat (terlambat)':'Absen masuk tercatat. Selamat bekerja!','ok');
+  if(!(AB.ok&&AB.foto))return;
+  const jm=nowWIT().slice(11,16),late=jm>String(S.setting.jamMasuk||'08:30').slice(0,5);
+  const absId='AB-'+Date.now();
+  LS.s('pos_selfie_'+absId,AB.foto);
+  mut('absenMasuk',{latitude:AB.lat,longitude:AB.lng,foto:{data:AB.foto}},()=>{
+    S.absensi.push({absensiId:absId,tanggal:today(),userId:S.me.userId,jamMasuk:nowWIT(),fotoSelfieMasuk:AB.foto,statusMasuk:late?'TERLAMBAT':'TEPAT_WAKTU',jamPulang:'',latitude:AB.lat,longitude:AB.lng,jarakMeter:AB.d});
+  });
+  stopAbsenCam();
+  closeModal();
+  toast(late?'Absen masuk tercatat (terlambat)':'Absen masuk tercatat. Selamat bekerja!','ok');
 };
 A.izin=()=>F.izin();
 F.izin=function(){
@@ -619,7 +753,7 @@ A.apr=v=>{
 };
 
 /* ============ TRANSAKSI: FORM, STRUK, BATAL ============ */
-const BARANG=['Kalung','Cincin','Gelang','Anting','Liontin','Bar/Batangan','Lainnya'],KATJ=['Patri','Sepuh','Ganti Mata','Servis Cincin','Lainnya'],KATO=['Listrik & Air','Konsumsi','Kebersihan','Transport','Beli Bahan Baku','Lainnya'],KADAR={EMAS:['700','750','375','875','999'],PERAK:['925','999']};
+const BARANG=['Kalung','Cincin','Gelang','Anting','Liontin','Bar/Batangan','Lainnya'],KATJ=['Jasa Patri','Jasa Sepuh','Servis & Cuci Perhiasan','Ganti Mata / Pasang Batu','Pendapatan Titipan','Pemasukan Lain-lain'],KATO=['Listrik & Air','Konsumsi','Kebersihan','Transport','Beli Bahan Baku','Lainnya'],KADAR={EMAS:['700','750','375','875','999'],PERAK:['925','999']};
 function compress(file){return new Promise((res,rej)=>{const img=new Image(),url=URL.createObjectURL(file);img.onload=()=>{let w=img.width,h=img.height;const k=Math.min(1,1280/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);let q=.8,d=c.toDataURL('image/jpeg',q);while(d.length*.75>300000&&q>.3){q-=.1;d=c.toDataURL('image/jpeg',q)}URL.revokeObjectURL(url);res(d)};img.onerror=()=>{toast('Foto tidak dapat dibaca','err');rej()};img.src=url})}
 const hargaGr=(l,k,j)=>{const s=S.setting;let h=l==='EMAS'?s.hargaKadar700*(+k)/700:s.spotPerak*(+k)/1000;if(j==='BUYBACK')h*=.9;return Math.round(h)};
 function est(){
@@ -632,7 +766,7 @@ function tfSync(){
   const j=TF.jenis,g=j==='PENJUALAN'||j==='BUYBACK';
   $$('#tf-j button').forEach(b=>b.classList.toggle('on',b.dataset.v===j));$$('#tf-l button').forEach(b=>b.classList.toggle('on',b.dataset.v===TF.logam));$$('#tf-m button').forEach(b=>b.classList.toggle('on',b.dataset.v===TF.metode));
   $('#tf-g').classList.toggle('hidden',!g);$('#tf-rw').classList.toggle('hidden',TF.metode==='TUNAI');$('#tf-bb').classList.toggle('hidden',j!=='BUYBACK');
-  $('#tf-kl').textContent=g?'Jenis Barang':j==='JASA'?'Jenis Jasa':'Keperluan';$('#tf-pl').textContent=j==='PENGELUARAN_OPS'?'Penerima / Supplier':j==='BUYBACK'?'Nama Penjual':'Pelanggan';
+  $('#tf-kl').textContent=g?'Jenis Barang':j==='JASA'?'Kategori Pemasukan':'Keperluan Pengeluaran';$('#tf-pl').textContent=j==='PENGELUARAN_OPS'?'Penerima / Supplier':j==='BUYBACK'?'Nama Penjual':'Pelanggan / Pembayar';
   const lst=g?BARANG:j==='JASA'?KATJ:KATO,k=$('#tf-k'),kc=k.value;k.innerHTML=lst.map(x=>'<option>'+esc(x)+'</option>').join('');if(lst.indexOf(kc)>=0)k.value=kc;
   const kd=$('#tf-kd'),dc=kd.value;kd.innerHTML=KADAR[TF.logam].map(x=>'<option>'+x+'</option>').join('');if(KADAR[TF.logam].indexOf(dc)>=0)kd.value=dc;
   est();
@@ -802,8 +936,11 @@ function strukBody(t){
     '</div>'+
     '<div class="struk-paper '+(cfg.lebar==='80'?'w80':'w58')+'" id="struk-box">'+esc(strukText(t, cfg))+'</div>'+
   '</div>'+
-  '<div class="row2" style="margin-top:12px">'+
-    '<button class="btn pri" data-a="print"'+(sync?' disabled':'')+'>'+ic('printer','s')+' Cetak Struk (Thermal)</button>'+
+  '<div class="grid" style="gap:8px;margin-top:12px">'+
+    '<div class="row2">'+
+      '<button class="btn pri" data-a="printbt"'+(sync?' disabled':'')+'>'+ic('bluetooth','s')+' Cetak Bluetooth</button>'+
+      '<button class="btn blk" data-a="print"'+(sync?' disabled':'')+'>'+ic('printer','s')+' Cetak Dialog</button>'+
+    '</div>'+
     '<button class="btn gh" data-a="wa"'+(sync?' disabled':'')+'>'+ic('send','s')+' Kirim ke WhatsApp</button>'+
   '</div>'+
   (t.status==='AKTIF'&&!sync?'<button class="btn bad blk" style="margin-top:10px" data-a="batal" data-v="'+esc(t.transaksiId)+'">'+ic('undo','s')+(isO()?' Batalkan Nota':' Ajukan Pembatalan')+'</button>':'')+
@@ -826,6 +963,117 @@ A.print = () => {
   window.print();
 };
 
+/* ============ BLUETOOTH THERMAL PRINTER ENGINE ============ */
+async function printViaBluetooth(text){
+  if (!navigator.bluetooth) {
+    return fallbackRawBTPrint(text, false);
+  }
+  toast('Mencari printer Bluetooth thermal…', 'ok');
+  try {
+    const knownServices = [
+      '000018f0-0000-1000-8000-00805f9b34fb',
+      'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+      '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+      '0000ae30-0000-1000-8000-00805f9b34fb',
+      '0000af30-0000-1000-8000-00805f9b34fb',
+      '0000ff00-0000-1000-8000-00805f9b34fb'
+    ];
+
+    let device;
+    try {
+      device = await navigator.bluetooth.requestDevice({
+        filters: knownServices.map(s => ({ services: [s] })),
+        optionalServices: knownServices
+      });
+    } catch(fe) {
+      device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: knownServices
+      });
+    }
+
+    if (!device) return;
+    toast('Menghubungkan ke ' + (device.name || 'Printer') + '…', 'ok');
+    const server = await device.gatt.connect();
+    const services = await server.getPrimaryServices();
+    let writeChar = null;
+
+    for (const service of services) {
+      try {
+        const chars = await service.getCharacteristics();
+        for (const ch of chars) {
+          if (ch.properties.write || ch.properties.writeWithoutResponse) {
+            writeChar = ch;
+            break;
+          }
+        }
+      } catch(e){}
+      if (writeChar) break;
+    }
+
+    if (!writeChar) {
+      throw new Error('Karakteristik cetak ESC/POS tidak ditemukan pada printer ini.');
+    }
+
+    const encoder = new TextEncoder();
+    const initCmd = new Uint8Array([0x1B, 0x40]); // ESC @
+    const feedCutCmd = new Uint8Array([0x0A, 0x0A, 0x0A, 0x0A, 0x1D, 0x56, 0x00]); // LF 4x + Cut
+    const textBytes = encoder.encode(text + '\n');
+    const payload = new Uint8Array(initCmd.length + textBytes.length + feedCutCmd.length);
+    payload.set(initCmd, 0);
+    payload.set(textBytes, initCmd.length);
+    payload.set(feedCutCmd, initCmd.length + textBytes.length);
+
+    const CHUNK_SIZE = 50;
+    for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+      const chunk = payload.slice(i, i + CHUNK_SIZE);
+      if (writeChar.properties.writeWithoutResponse) {
+        await writeChar.writeValueWithoutResponse(chunk);
+      } else {
+        await writeChar.writeValue(chunk);
+      }
+      await new Promise(r => setTimeout(r, 25));
+    }
+
+    toast('Struk berhasil dicetak ke printer Bluetooth!', 'ok');
+    setTimeout(() => { try { device.gatt.disconnect(); } catch(e){} }, 1000);
+  } catch(err) {
+    if (err && err.name === 'NotFoundError') {
+      toast('Pencarian printer Bluetooth dibatalkan', 'warn');
+    } else {
+      toast('Bluetooth: ' + (err.message || 'Gagal terhubung'), 'err');
+      fallbackRawBTPrint(text, true);
+    }
+  }
+}
+
+function fallbackRawBTPrint(text, isError){
+  const b64 = btoa(unescape(encodeURIComponent(text + '\n\n\n\n')));
+  const rawbtUrl = 'rawbt:data:base64,' + b64;
+  modal('Cetak Printer Bluetooth',
+    '<div class="grid" style="gap:14px">'+
+      (isError ? '<div class="err" style="margin:0">Koneksi Web Bluetooth langsung tidak berhasil atau browser membatasi akses BLE. Gunakan opsi cepat di bawah:</div>' : '')+
+      '<div class="card" style="padding:14px;background:#fbfbfb">'+
+        '<h3 style="margin-bottom:6px">Opsi 1: Aplikasi RawBT (Rekomendasi HP Android)</h3>'+
+        '<p style="font-size:13px;color:var(--mut);margin-bottom:12px">Buka langsung aplikasi RawBT Printer yang sudah ter-pairing dengan printer bluetooth 58mm/80mm Anda.</p>'+
+        '<a class="btn pri" href="'+rawbtUrl+'" target="_blank" rel="noopener">'+ic('printer','s')+' Buka di Aplikasi RawBT</a>'+
+      '</div>'+
+      '<div class="card" style="padding:14px;background:#fbfbfb">'+
+        '<h3 style="margin-bottom:6px">Opsi 2: Web Bluetooth Langsung</h3>'+
+        '<p style="font-size:13px;color:var(--mut);margin-bottom:12px">Pastikan Bluetooth HP/laptop aktif dan printer thermal dalam mode Pairing (ON).</p>'+
+        '<button class="btn gold" data-a="printbt_direct">'+ic('bluetooth','s')+' Sambungkan &amp; Cetak Ulang</button>'+
+      '</div>'+
+      '<div class="card" style="padding:14px;background:#fbfbfb">'+
+        '<h3 style="margin-bottom:6px">Opsi 3: Print Dialog Standar</h3>'+
+        '<p style="font-size:13px;color:var(--mut);margin-bottom:12px">Gunakan print dialog browser jika printer sudah terinstal di sistem.</p>'+
+        '<button class="btn gh" data-a="print">'+ic('printer','s')+' Cetak Dialog Standar</button>'+
+      '</div>'+
+    '</div>'
+  );
+}
+
+A.printbt = () => { const t = findTrx(RC); if (t) printViaBluetooth(strukText(t, getStrukCfg())); };
+A.printbt_direct = () => { const t = findTrx(RC); if (t) printViaBluetooth(strukText(t, getStrukCfg())); };
 function waOpen(text){ const a = document.createElement('a'); a.href = 'https://wa.me/?text=' + encodeURIComponent(text); a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
 A.wa = () => { const t = findTrx(RC); if(t) waOpen(strukText(t)); };
 
@@ -1045,9 +1293,18 @@ function lapStats(){
 function lapBody(){
   const x=lapStats(),days={};x.L.forEach(t=>{const d=t.waktu.slice(0,10);days[d]=days[d]||{j:0,b:0,o:0};if(isJual(t))days[d].j+=t.nominal;else if(t.jenis==='BUYBACK')days[d].b+=t.nominal;else days[d].o+=t.nominal});
   const metode={};x.L.filter(isJual).forEach(t=>{metode[t.metodeBayar]=(metode[t.metodeBayar]||0)+t.nominal});
-  return '<div class="grid g4" style="margin:16px 0">'+kpi('Penjualan Logam',rp(x.jual),'<small>'+nf2.format(x.gram)+' gr emas · '+nf2.format(x.perak)+' gr perak</small>','gem')+kpi('Pendapatan Jasa',rp(x.jasa),'<small>'+x.nota+' nota</small>','tool')+kpi('Buyback + Pengeluaran',rp(x.bb+x.op),'<small>Buyback '+rpS(x.bb)+' · Ops '+rpS(x.op)+'</small>','up')+kpi('Selisih Kas Operasional',rp(x.jual+x.jasa-x.bb-x.op),'<small>pemasukan − pengeluaran</small>','coin','gold')+'</div>'+
-   '<div class="grid g2"><div class="card"><div class="hd"><h3>Per Hari</h3></div><div class="tbw"><table><thead><tr><th>Tanggal</th><th class="r">Penjualan</th><th class="r">Buyback</th><th class="r">Ops</th></tr></thead><tbody>'+(Object.keys(days).sort().reverse().map(d=>'<tr><td>'+tgl(d)+'</td><td class="r">'+rp(days[d].j)+'</td><td class="r">'+rp(days[d].b)+'</td><td class="r">'+rp(days[d].o)+'</td></tr>').join('')||'<tr><td colspan="4">'+empty('Tidak ada data.')+'</td></tr>')+'</tbody></table></div></div>'+
-   '<div class="card"><div class="hd"><h3>Metode Pembayaran (pemasukan)</h3></div>'+(Object.keys(metode).map(k=>'<div class="tr"><span class="tm"><b>'+k+'</b></span><span class="ta"><b>'+rp(metode[k])+'</b></span></div>').join('')||empty('Tidak ada data.'))+'</div></div>';
+  const totalMetode=Object.values(metode).reduce((a,b)=>a+b,0)||1;
+  const sortedDays=Object.keys(days).sort().reverse();
+  const tableRows=sortedDays.map(d=>'<tr><td><b>'+tgl(d)+'</b></td><td class="r" style="color:#059669;font-weight:700">'+rp(days[d].j)+'</td><td class="r" style="color:#d97706;font-weight:600">'+rp(days[d].b)+'</td><td class="r" style="color:#64748b">'+rp(days[d].o)+'</td></tr>').join('')||'<tr><td colspan="4">'+empty('Tidak ada data.')+'</td></tr>';
+  const mobileCards=sortedDays.map(d=>'<div class="rep-day-card"><div class="rep-day-hd"><span class="rep-day-date">'+ic('cal','s')+' <b>'+tgl(d)+'</b></span><span class="tag gold" style="font-weight:700">'+rp(days[d].j)+'</span></div><div class="rep-day-stats"><div class="rep-stat-col"><small>Penjualan</small><span class="val val-ok">'+rp(days[d].j)+'</span></div><div class="rep-stat-col"><small>Buyback</small><span class="val val-bb">'+rp(days[d].b)+'</span></div><div class="rep-stat-col"><small>Operasional</small><span class="val val-op">'+rp(days[d].o)+'</span></div></div></div>').join('')||empty('Tidak ada data.');
+  const metodeList=Object.keys(metode).map(k=>{
+    const amt=metode[k],pct=Math.round((amt/totalMetode)*100);
+    return '<div class="pay-meth-item"><div class="pay-meth-row"><span style="display:inline-flex;align-items:center;gap:8px"><b>'+esc(k)+'</b><span class="tag" style="font-size:11px">'+pct+'%</span></span><span style="font-weight:700;color:var(--ink)">'+rp(amt)+'</span></div><div class="pay-bar-bg"><div class="pay-bar-fill" style="width:'+pct+'%"></div></div></div>';
+  }).join('')||empty('Tidak ada data pemasukan.');
+
+  return '<div class="grid g4" style="margin:16px 0">'+kpi('Penjualan Logam',rp(x.jual),'<small>'+nf2.format(x.gram)+' gr emas · '+nf2.format(x.perak)+' gr perak</small>','gem')+kpi('Pemasukan / Jasa',rp(x.jasa),'<small>'+x.nota+' nota</small>','tool')+kpi('Buyback + Pengeluaran',rp(x.bb+x.op),'<small>Buyback '+rpS(x.bb)+' · Ops '+rpS(x.op)+'</small>','up')+kpi('Selisih Kas Operasional',rp(x.jual+x.jasa-x.bb-x.op),'<small>pemasukan − pengeluaran</small>','coin','gold')+'</div>'+
+   '<div class="grid g2"><div class="card"><div class="hd"><div><h3>Per Hari</h3><small>Ringkasan transaksi harian</small></div><span class="tag">'+sortedDays.length+' Hari</span></div><div class="tbw desk-only"><table><thead><tr><th>Tanggal</th><th class="r">Penjualan</th><th class="r">Buyback</th><th class="r">Ops</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="rep-day-cards mobile-only">'+mobileCards+'</div></div>'+
+   '<div class="card"><div class="hd"><div><h3>Metode Pembayaran (Pemasukan)</h3><small>Distribusi pembayaran kasir</small></div><span class="tag gold">'+rp(totalMetode===1&&!Object.keys(metode).length?0:totalMetode)+'</span></div><div style="padding-top:4px">'+metodeList+'</div></div></div>';
 }
 P.laporan=function(){
   if(!RP.a){RP.b=today();RP.a=RP.b.slice(0,8)+'01'}
@@ -1067,7 +1324,24 @@ A.lapx=()=>{
 /* ============ PENGATURAN ============ */
 P.pengaturan=function(){
   const s=S.setting,us=S.users||[],sc=getStrukCfg();
+  const logoSrc=(s&&s.logoToko)||LS.g('pos_logo_toko');
   return '<div class="ph"><div><h1>Pengaturan Toko &amp; Struk</h1><p>Profil, harga, rekening bank, format struk thermal, karyawan, dan keamanan.</p></div></div>'+
+   '<div class="card" style="margin-bottom:20px">'+
+    '<div class="hd"><div><h3>Logo Toko &amp; Identitas Visual</h3><small>Logo toko tampil di sidebar brand, header atas, dan nota kasir</small></div></div>'+
+    '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">'+
+      '<div class="logo-setting-preview">'+
+        (logoSrc ? '<img id="logo-setting-img" src="'+esc(logoSrc)+'" alt="Logo Toko">' : '<div style="text-align:center;color:var(--mut)"><div style="display:grid;place-items:center">'+ic('gem')+'</div><small style="font-size:10px">Default</small></div>')+
+      '</div>'+
+      '<div style="flex:1;min-width:200px">'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+          '<button type="button" class="btn sm pri" data-a="logochoose">'+ic('upload','s')+' Upload / Ganti Logo Toko</button>'+
+          (logoSrc ? '<button type="button" class="btn sm bad" data-a="logodel">'+ic('x','s')+' Hapus Logo</button>' : '')+
+        '</div>'+
+        '<small style="color:var(--mut);display:block">Format PNG/JPG/WebP. Otomatis dikompresi agar loading cepat.</small>'+
+        '<input type="file" id="logo-file-input" accept="image/*" class="hidden" data-in="logofile">'+
+      '</div>'+
+    '</div>'+
+   '</div>'+
    '<div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#ffffff 0%,#fffdf8 55%,#fff6db 100%);border-color:rgba(245,179,1,0.35)">'+
     '<div class="hd"><div><h3>Format &amp; Pengaturan Struk Kasir Termal</h3><small>Kustomisasi cetak nota 58mm / 80mm, header toko, dan kebijakan buyback</small></div>'+
       '<div class="chips"><button class="btn sm pri" data-a="strukcfg">'+ic('printer','s')+' Kustomisasi Struk</button><button class="btn sm gh" data-a="struktestprint">'+ic('printer','s')+' Cetak Uji Coba</button></div>'+
@@ -1086,6 +1360,9 @@ P.pengaturan=function(){
     '<div class="card" style="margin-top:20px"><div class="hd"><div><h3>Kelola Karyawan &amp; Hak Akses</h3><small>Foto profil, status, dan PIN login</small></div><button class="btn sm pri" data-a="useradd">'+ic('plus','s')+' Tambah Karyawan</button></div>'+us.map(u=>'<div class="tr">'+uAvatar(u,'sm')+'<span class="tm"><b>'+esc(u.nama)+'</b><small>'+esc(u.username)+' · <span class="tag '+(u.role==='OWNER'?'gold':'')+'">'+u.role+'</span> · <span class="tag '+(u.status==='AKTIF'?'ok':'bad')+'">'+u.status+'</span></small></span><div style="display:flex;gap:6px"><button class="btn sm gh" data-a="myphoto" data-v="'+u.userId+'" title="Ubah foto">'+ic('camera','s')+' Foto</button>'+(u.role==='OWNER'?'':'<button class="btn sm" data-a="useredit" data-v="'+u.userId+'">Ubah</button><button class="btn sm" data-a="userpin" data-v="'+u.userId+'">Reset PIN</button>')+'</div></div>').join('')+'</div>';
 };
 A.profil=()=>F.profil();A.rekedit=()=>F.rekening();A.pass=()=>F.pass();A.useradd=()=>F.user();A.useredit=v=>F.user(v);A.userpin=v=>F.pin(v);
+A.logochoose=()=>{const i=$('#logo-file-input');if(i){i.value='';i.click()}};
+A.logodel=()=>{if(S.setting)S.setting.logoToko='';LS.d('pos_logo_toko');mut('settingSimpan',{logoToko:''});toast('Logo toko dihapus, kembali ke default','ok');chrome();render()};
+IN.logofile=(v,el)=>{const f=el.files&&el.files[0];if(!f)return;compress(f).then(d=>{if(S.setting)S.setting.logoToko=d;LS.s('pos_logo_toko',d);mut('settingSimpan',{logoToko:d});toast('Logo toko berhasil disimpan!','ok');chrome();render()}).catch(()=>toast('Gagal memproses file logo','err'))};
 A.myphoto=v=>F.photo(v);A.avchoose=v=>{const i=$('#av-file-input');if(i){i.dataset.uid=v||'';i.value='';i.click()}};
 A.avdel=v=>{const uid=v||(S&&S.me&&S.me.userId),u=getUserObj(uid);if(u)u.foto='';LS.d('pos_av_'+uid);if(S&&S.me&&S.me.userId===uid)S.me.foto='';mut('userSimpan',{userId:uid,foto:''});closeModal();toast('Foto profil dihapus','ok');chrome();render()};
 IN.avfile=(v,el)=>{const f=el.files&&el.files[0];if(!f)return;const uid=el.dataset.uid||(S&&S.me&&S.me.userId);compress(f).then(d=>{const u=getUserObj(uid);if(u)u.foto=d;LS.s('pos_av_'+uid,d);if(S&&S.me&&S.me.userId===uid)S.me.foto=d;mut('userSimpan',{userId:uid,foto:d});closeModal();toast('Foto profil berhasil disimpan!','ok');chrome();render()}).catch(()=>toast('Gagal memproses foto','err'))};
