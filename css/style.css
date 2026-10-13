@@ -691,12 +691,440 @@ textarea.inp { min-height: 76px; resize: vertical; }
   display: block;
 }
 
+/* ============ MULTI-PHOTO UPLOAD (KOTAK KECIL MAKS 3) ============ */
+.photo-multi-wrap {
+  margin: 12px 0 16px;
+  background: #fbfbfb;
+  border: 1px dashed var(--ln2);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.photo-multi-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.photo-grid-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.photo-thumb-item {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  border: 2px solid var(--ln);
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+  transition: transform 0.1s ease;
+}
+.photo-thumb-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold);
+}
+.photo-thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+.photo-thumb-del {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  transition: transform 0.15s ease, background-color 0.15s;
+}
+.photo-thumb-del:hover {
+  transform: scale(1.18);
+  background: #991b1b;
+}
+.photo-add-wrap {
+  display: flex;
+  gap: 8px;
+}
+.photo-add-btn {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  border: 1.5px dashed rgba(245, 179, 1, 0.7);
+  background: #fffdf9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 600;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.photo-add-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-d);
+  background: #fff8e1;
+  transform: translateY(-1px);
+}
+
+/* ============ TUKAR TAMBAH STYLES ============ */
+.tt-section {
+  border-radius: 14px;
+  border: 1px solid var(--ln);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.tt-sec-baru {
+  background: #fffdf9;
+  border-left: 4px solid var(--gold);
+}
+.tt-sec-lama {
+  background: #fffaf8;
+  border-left: 4px solid #ea580c;
+}
+.tt-sec-sum {
+  background: #f8f9fa;
+  border-left: 4px solid #18181b;
+}
+.tt-summary-box {
+  background: #ffffff;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+/* ============ PENGAJUAN SAYA (RAPI & PROFESIONAL) ============ */
+.ap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ap-card-item {
+  background: #fafafc;
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  padding: 12px 14px;
+  transition: all .15s ease;
+}
+.ap-card-item:hover {
+  background: #ffffff;
+  border-color: var(--ln2);
+  box-shadow: 0 4px 12px -2px rgba(0,0,0,0.04);
+}
+.ap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ap-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ap-time {
+  font-size: 11px;
+  color: var(--mut);
+  font-weight: 500;
+}
+.ap-body {
+  margin-bottom: 6px;
+}
+.ap-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.ap-pengaju {
+  display: block;
+  font-size: 11px;
+  color: var(--mut);
+  margin-top: 4px;
+}
+.ap-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--ln);
+}
+
+/* ============ HEADER USER POPOVER & PROFILE CARD ============ */
+.user-popover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.upop-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(245,179,1,0.08), rgba(0,0,0,0.02));
+  border: 1px solid rgba(245,179,1,0.2);
+  border-radius: 16px;
+  padding: 16px;
+}
+.upop-avatar-box {
+  position: relative;
+  flex-shrink: 0;
+}
+.upop-img {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--gold);
+  box-shadow: var(--sh2);
+  display: block;
+}
+.upop-av-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  font-size: 26px;
+  font-weight: 800;
+  border: 3px solid var(--gold);
+  box-shadow: var(--sh2);
+  display: grid;
+  place-items: center;
+}
+.upop-cam-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--obs);
+  color: var(--gold);
+  border: 2px solid #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  transition: transform .15s ease;
+}
+.upop-cam-badge:hover {
+  transform: scale(1.1);
+}
+.upop-details {
+  flex: 1;
+  min-width: 0;
+}
+.upop-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upop-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.upop-uname {
+  font-size: 12px;
+  color: var(--mut);
+}
+.upop-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.upop-btn {
+  justify-content: flex-start;
+  padding: 10px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+.upop-footer {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ln);
+}
+.upop-logout-btn {
+  justify-content: center;
+  padding: 11px 16px;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+/* ============ HALAMAN PROFIL KASIR (MOBILE & DESKTOP) ============ */
+.profil-kasir-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.pk-hero-card {
+  background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--sh2);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.pk-hero-card::after {
+  content: '';
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,179,1,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+.pk-avatar-box {
+  position: relative;
+  flex-shrink: 0;
+}
+.pk-av-img {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--gold);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.pk-av-fallback {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  font-size: 32px;
+  font-weight: 800;
+  border: 3px solid var(--gold);
+  display: grid;
+  place-items: center;
+  background: #3f3f46;
+  color: #fff;
+}
+.pk-hero-info {
+  flex: 1;
+  min-width: 0;
+}
+.pk-hero-info h2 {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.pk-meta-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.pk-card {
+  background: var(--card);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.pk-card .hd {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ln);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pk-card .hd h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.pk-menu-list {
+  display: flex;
+  flex-direction: column;
+}
+.pk-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--ln);
+  background: transparent;
+  transition: background .12s ease;
+  width: 100%;
+}
+.pk-menu-item:last-child {
+  border-bottom: 0;
+}
+.pk-menu-item:hover {
+  background: #fbfbfd;
+}
+.pk-menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f4f4f5;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.pk-menu-icon.gold {
+  background: var(--gold-s);
+  color: var(--gold-d);
+}
+.pk-menu-text {
+  flex: 1;
+  min-width: 0;
+}
+.pk-menu-text b {
+  display: block;
+  font-size: 14px;
+  color: var(--ink);
+}
+.pk-menu-text small {
+  display: block;
+  color: var(--mut);
+  font-size: 12px;
+}
+
 @media (max-width: 420px) {
   .g4, .g3 { grid-template-columns: 1fr; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .row2 { grid-template-columns: 1fr; }
   .wh-actions { flex-direction: column; width: 100%; }
   .wh-actions .btn { width: 100%; }
+  .pk-hero-card { flex-direction: column; text-align: center; }
+  .pk-meta-row { justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
