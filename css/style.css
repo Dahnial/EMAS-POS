@@ -440,11 +440,345 @@ textarea.inp { min-height: 76px; resize: vertical; }
   word-break: break-word;
 }
 
-#print-area { display: none; }
+#print-area, #print-nota-area { display: none; }
+
+/* ============ NOTA TOKO RESMI PUTRI BALI ============ */
+.nota-toko-doc {
+  position: relative;
+  background-color: #ffffff;
+  color: #111827;
+  font-family: 'Plus Jakarta Sans', Arial, Helvetica, sans-serif;
+  padding: 18px 24px;
+  border: 1.5px solid #a87938;
+  border-radius: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+}
+.nota-toko-doc.with-watermark {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='36' viewBox='0 0 160 36'%3E%3Ctext x='50%25' y='60%25' text-anchor='middle' font-family='Arial, sans-serif' font-weight='700' font-size='16' fill='%239ca3af' fill-opacity='0.22'%3EPUTRI BALI%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+.nota-toko-doc.no-watermark {
+  background-image: none !important;
+}
+.nota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.nota-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+}
+.nota-logo {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.nota-store-info {
+  display: flex;
+  flex-direction: column;
+}
+.nota-toko-sub {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #1f2937;
+  line-height: 1.1;
+}
+.nota-toko-name {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #8c6023;
+  line-height: 1.1;
+  font-family: 'Times New Roman', serif, 'Plus Jakarta Sans';
+}
+.nota-toko-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #111827;
+  margin-top: 2px;
+}
+.nota-toko-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5px;
+  font-size: 9.5px;
+  color: #374151;
+  font-weight: 600;
+  margin-top: 3px;
+}
+.nota-toko-contact span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.nota-meta {
+  width: 250px;
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #1f2937;
+}
+.nota-meta-row {
+  display: flex;
+  align-items: baseline;
+}
+.nota-meta-row span:first-child {
+  width: 65px;
+  font-weight: 600;
+}
+.nota-meta-row .dots {
+  flex: 1;
+  font-weight: 500;
+}
+.nota-meta-row.nota-no-row {
+  margin-top: 2px;
+  font-size: 12px;
+}
+.nota-meta-row.nota-no-row span:first-child {
+  font-weight: 800;
+}
+.nota-meta-row.nota-no-row .dots {
+  font-weight: 800;
+  color: #8c6023;
+}
+.nota-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.nota-table th {
+  background-color: #9e6f30;
+  color: #ffffff;
+  padding: 6px 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border: 1px solid #7c5421;
+}
+.nota-table td {
+  padding: 5px 8px;
+  border: 1px solid #c5b497;
+  background-color: rgba(255, 255, 255, 0.7);
+  vertical-align: middle;
+  height: 22px;
+}
+.nota-calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.nota-terbilang-box {
+  flex: 1;
+  background-color: #e8e3d8;
+  border: 1px solid #c5b497;
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.terbilang-lbl {
+  font-weight: 700;
+  font-size: 11px;
+  color: #374151;
+  white-space: nowrap;
+}
+.terbilang-val {
+  font-weight: 700;
+  font-style: italic;
+  font-size: 11.5px;
+  color: #1f2937;
+}
+.nota-total-box {
+  width: 240px;
+  border: 1.5px solid #7c5421;
+  border-radius: 4px;
+  background-color: #fff;
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.total-lbl {
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
+}
+.total-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #8c6023;
+}
+.nota-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+.nota-perhatian {
+  flex: 1;
+  font-size: 9.5px;
+  line-height: 1.35;
+  color: #1f2937;
+}
+.perhatian-title {
+  font-weight: 800;
+  margin-bottom: 2px;
+  color: #111827;
+}
+.perhatian-list {
+  margin: 0 0 6px 16px;
+  padding: 0;
+}
+.perhatian-list li {
+  margin-bottom: 1px;
+}
+.nota-thanks {
+  font-size: 12px;
+  font-weight: 800;
+  font-style: italic;
+  color: #8c6023;
+  margin-top: 4px;
+}
+.nota-signature {
+  width: 180px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sig-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 2px;
+}
+.sig-stamp-box {
+  width: 80px;
+  height: 80px;
+  margin: 2px auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nota-stamp-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0.85;
+}
+.sig-name {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #374151;
+  border-top: 1px dotted #9ca3af;
+  padding-top: 2px;
+  width: 100%;
+}
+
+/* ============ LAPORAN REKAP RATA-RATA HARGA ============ */
+.rep-avg-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 14px 0;
+}
+.rep-avg-card {
+  background: var(--bg-card, #1c1c1f);
+  border: 1px solid var(--ln, rgba(255,255,255,0.08));
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.rep-avg-card.emas {
+  border-color: rgba(245, 179, 1, 0.28);
+}
+.rep-avg-card.perak {
+  border-color: rgba(148, 163, 184, 0.28);
+}
+.rep-avg-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rep-avg-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mut, #a1a1aa);
+}
+.rep-avg-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.rep-avg-badge.jual { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.rep-avg-badge.bb { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.rep-avg-main {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink, #ffffff);
+  line-height: 1.2;
+}
+.rep-avg-sub {
+  font-size: 11.5px;
+  color: var(--mut, #a1a1aa);
+}
+.rep-avg-rate {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--ln, rgba(255,255,255,0.08));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rep-avg-rate-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mut, #a1a1aa);
+}
+.rep-avg-rate-val {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #f5b301;
+  font-family: 'JetBrains Mono', monospace;
+}
+@media (max-width: 991px) {
+  .rep-avg-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 540px) {
+  .rep-avg-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 @media print {
   body * { visibility: hidden !important; }
   #print-area, #print-area * { visibility: visible !important; }
+  #print-nota-area, #print-nota-area * { visibility: visible !important; }
   #print-area {
     display: block !important;
     position: absolute;
@@ -458,7 +792,24 @@ textarea.inp { min-height: 76px; resize: vertical; }
   }
   #print-area.p58 { width: 56mm; font-size: 11px; line-height: 14px; }
   #print-area.p80 { width: 78mm; font-size: 12.5px; line-height: 16px; }
-  @page { margin: 0; }
+
+  #print-nota-area {
+    display: block !important;
+    position: absolute;
+    left: 0; top: 0;
+    width: 100% !important;
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+    color: #000 !important;
+    box-sizing: border-box;
+  }
+  #print-nota-area .nota-toko-doc {
+    border: 1.5px solid #a87938 !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
+  @page { margin: 8mm 6mm; size: auto; }
 }
 
 /* ============ RESPONSIVE LAYOUT (SMARTPHONE, TABLET, DESKTOP) ============ */

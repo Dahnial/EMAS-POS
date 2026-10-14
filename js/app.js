@@ -1086,8 +1086,26 @@ function ttCalc(){
   const bOngkos=$('#tt_b_ongkos')?rpVal($('#tt_b_ongkos').value):0;
   const lPotongan=$('#tt_l_potongan')?rpVal($('#tt_l_potongan').value):0;
 
-  const totalBaru=Math.round(bBerat*hBaruVal)+bOngkos;
-  const totalLama=Math.max(0,Math.round(lBerat*hLamaVal)-lPotongan);
+  /* Hitung subtotal otomatis */
+  let autoTotalBaru=Math.round(bBerat*hBaruVal)+bOngkos;
+  let autoTotalLama=Math.max(0,Math.round(lBerat*hLamaVal)-lPotongan);
+
+  /* Cek apakah total di-override manual */
+  const bTotalInp=$('#tt_b_total_manual'),lTotalInp=$('#tt_l_total_manual');
+  let totalBaru=autoTotalBaru,totalLama=autoTotalLama;
+  if(bTotalInp&&TF.tt.b_total_manual){
+    const mv=rpVal(bTotalInp.value);
+    if(mv>0)totalBaru=mv;
+  }else if(bTotalInp){
+    bTotalInp.value=rp(autoTotalBaru);
+  }
+  if(lTotalInp&&TF.tt.l_total_manual){
+    const mv=rpVal(lTotalInp.value);
+    if(mv>0)totalLama=mv;
+  }else if(lTotalInp){
+    lTotalInp.value=rp(autoTotalLama);
+  }
+
   const sisa=totalBaru-totalLama;
 
   if($('#tt_b_subtotal'))$('#tt_b_subtotal').textContent=rp(totalBaru);
@@ -1111,11 +1129,13 @@ function ttCalc(){
     }
   }
 }
-A.tt_b_logam=v=>{TF.tt.b_logam=v;TF.tt.b_manual=false;ttUpdateKadar();ttCalc();$$('#tt_b_logam_seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))};
-A.tt_l_logam=v=>{TF.tt.l_logam=v;TF.tt.l_manual=false;ttUpdateKadar();ttCalc();$$('#tt_l_logam_seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))};
+A.tt_b_logam=v=>{TF.tt.b_logam=v;TF.tt.b_manual=false;TF.tt.b_total_manual=false;ttUpdateKadar();ttCalc();$$('#tt_b_logam_seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))};
+A.tt_l_logam=v=>{TF.tt.l_logam=v;TF.tt.l_manual=false;TF.tt.l_total_manual=false;ttUpdateKadar();ttCalc();$$('#tt_l_logam_seg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))};
 IN.tt_calc=()=>ttCalc();
-IN.tt_b_manual=()=>{TF.tt.b_manual=true;ttCalc()};
-IN.tt_l_manual=()=>{TF.tt.l_manual=true;ttCalc()};
+IN.tt_b_manual=()=>{TF.tt.b_manual=true;TF.tt.b_total_manual=false;ttCalc()};
+IN.tt_l_manual=()=>{TF.tt.l_manual=true;TF.tt.l_total_manual=false;ttCalc()};
+IN.tt_b_total_manual=()=>{TF.tt.b_total_manual=true;ttCalc()};
+IN.tt_l_total_manual=()=>{TF.tt.l_total_manual=true;ttCalc()};
 
 function tfSync(){
   const j=TF.jenis,isTT=j==='TUKAR_TAMBAH',g=j==='PENJUALAN'||j==='BUYBACK';
@@ -1159,7 +1179,7 @@ A.tfl=v=>{TF.logam=v;TF.manual=false;tfSync()};
 A.tfm=v=>{TF.metode=v;tfSync()};
 
 F.trx=function(j){
-  TF={jenis:j||'PENJUALAN',logam:'EMAS',metode:'TUNAI',fotos:[],manual:false,tt:{b_logam:'EMAS',l_logam:'EMAS',b_manual:false,l_manual:false}};
+  TF={jenis:j||'PENJUALAN',logam:'EMAS',metode:'TUNAI',fotos:[],manual:false,tt:{b_logam:'EMAS',l_logam:'EMAS',b_manual:false,l_manual:false,b_total_manual:false,l_total_manual:false}};
   const rek=(S.setting.rekening||[]).map(r=>r.nama);
   modal('Transaksi Kasir',
     '<form id="ftrx" novalidate>'+
@@ -1196,6 +1216,7 @@ F.trx=function(j){
             '<label class="fld"><span class="lb">Harga Jual / gr</span><input class="inp rp" id="tt_b_harga_gr" inputmode="numeric" autocomplete="off" placeholder="Rp 0" data-in="tt_b_manual"></label>'+
             '<label class="fld"><span class="lb">Ongkos / Biaya Tambahan</span><input class="inp rp" id="tt_b_ongkos" inputmode="numeric" autocomplete="off" placeholder="Rp 0" data-in="tt_calc"></label>'+
           '</div>'+
+          '<label class="fld" style="margin-top:6px"><span class="lb" style="color:#b45309;font-weight:700">✏️ Total Harga Barang Baru (bisa diubah manual)</span><input class="inp rp" id="tt_b_total_manual" inputmode="numeric" autocomplete="off" placeholder="Rp 0" data-in="tt_b_total_manual"></label>'+
           '<div style="background:#fff;border:1px solid var(--ln);border-radius:10px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center">'+
             '<span style="font-size:12px;color:var(--mut)">Total Harga Barang Baru:</span><b id="tt_b_subtotal" style="font-size:15px;color:var(--ink)">Rp 0</b>'+
           '</div>'+
@@ -1216,6 +1237,7 @@ F.trx=function(j){
             '<label class="fld"><span class="lb">Harga Buyback / gr</span><input class="inp rp" id="tt_l_harga_gr" inputmode="numeric" autocomplete="off" placeholder="Rp 0" data-in="tt_l_manual"></label>'+
             '<label class="fld"><span class="lb">Potongan / Biaya Lebur</span><input class="inp rp" id="tt_l_potongan" inputmode="numeric" autocomplete="off" placeholder="Rp 0" data-in="tt_calc"></label>'+
           '</div>'+
+          '<label class="fld" style="margin-top:6px"><span class="lb" style="color:#c2410c;font-weight:700">✏️ Total Nilai Barang Lama (bisa diubah manual)</span><input class="inp rp" id="tt_l_total_manual" inputmode="numeric" autocomplete="off" placeholder="Rp 0" data-in="tt_l_total_manual"></label>'+
           '<div style="background:#fff;border:1px solid var(--ln);border-radius:10px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center">'+
             '<span style="font-size:12px;color:var(--mut)">Total Nilai Barang Lama:</span><b id="tt_l_subtotal" style="font-size:15px;color:#c2410c">Rp 0</b>'+
           '</div>'+
@@ -1272,7 +1294,12 @@ SUB.ftrx=f=>{
     const bBerat=$('#tt_b_berat')?numG($('#tt_b_berat').value):0;
     const bHargaGr=$('#tt_b_harga_gr')?rpVal($('#tt_b_harga_gr').value):0;
     const bOngkos=$('#tt_b_ongkos')?rpVal($('#tt_b_ongkos').value):0;
-    const totalBaru=Math.round(bBerat*bHargaGr)+bOngkos;
+    let totalBaru=Math.round(bBerat*bHargaGr)+bOngkos;
+    /* Cek manual override total baru */
+    if(TF.tt.b_total_manual&&$('#tt_b_total_manual')){
+      const mv=rpVal($('#tt_b_total_manual').value);
+      if(mv>0)totalBaru=mv;
+    }
 
     const lJenis=$('#tt_l_jenis')?$('#tt_l_jenis').value:'Kalung';
     const lLogam=TF.tt.l_logam;
@@ -1280,7 +1307,12 @@ SUB.ftrx=f=>{
     const lBerat=$('#tt_l_berat')?numG($('#tt_l_berat').value):0;
     const lHargaGr=$('#tt_l_harga_gr')?rpVal($('#tt_l_harga_gr').value):0;
     const lPotongan=$('#tt_l_potongan')?rpVal($('#tt_l_potongan').value):0;
-    const totalLama=Math.max(0,Math.round(lBerat*lHargaGr)-lPotongan);
+    let totalLama=Math.max(0,Math.round(lBerat*lHargaGr)-lPotongan);
+    /* Cek manual override total lama */
+    if(TF.tt.l_total_manual&&$('#tt_l_total_manual')){
+      const mv=rpVal($('#tt_l_total_manual').value);
+      if(mv>0)totalLama=mv;
+    }
 
     const sisa=totalBaru-totalLama;
     const pelanggan=(el.pelanggan?el.pelanggan.value:'').trim();
@@ -1323,7 +1355,17 @@ SUB.ftrx=f=>{
     const fotoObj=(TF.fotos&&TF.fotos[0])?{data:TF.fotos[0],name:'bukti_tt_'+Date.now()+'.jpg'}:null;
     const fotoRaw=(TF.fotos&&TF.fotos[0])||'';
 
-    // 1. Barang baru otomatis masuk ke riwayat Penjualan dengan harga penuh
+    // ======================================================================
+    // PENTING: Pada tukar tambah, HANYA sisa transaksi yang masuk ke
+    // rekening bank / kas. Penjualan & Buyback dicatat sebagai TUNAI
+    // agar tidak terjadi pencatatan ganda ke rekening bank.
+    // Metode pembayaran asli (TRANSFER/QRIS/EDC) hanya dipakai untuk
+    // transaksi selisih (pSelisih) saja.
+    // ======================================================================
+    const metodeAsli=TF.metode;
+    const rekeningAsli=TF.metode==='TUNAI'?'':(el.rekening?el.rekening.value:'');
+
+    // 1. Barang baru otomatis masuk ke riwayat Penjualan — selalu TUNAI (tanpa efek bank)
     const pJual={
       jenis:'PENJUALAN',
       logam:bLogam,
@@ -1331,8 +1373,8 @@ SUB.ftrx=f=>{
       kadar:bKadar,
       berat:bBerat,
       nominal:totalBaru,
-      metodeBayar:TF.metode,
-      rekening:TF.metode==='TUNAI'?'':(el.rekening?el.rekening.value:''),
+      metodeBayar:'TUNAI',
+      rekening:'',
       pelanggan:pelanggan,
       catatan:catatanBersama,
       isTukarTambah:true,
@@ -1347,7 +1389,7 @@ SUB.ftrx=f=>{
       fotoRaw:fotoRaw
     };
 
-    // 2. Emas/perak lama pelanggan otomatis masuk ke riwayat Buyback sesuai nilai buyback
+    // 2. Emas/perak lama pelanggan otomatis masuk ke riwayat Buyback — selalu TUNAI
     const pBuyback={
       jenis:'BUYBACK',
       logam:lLogam,
@@ -1355,8 +1397,8 @@ SUB.ftrx=f=>{
       kadar:lKadar,
       berat:lBerat,
       nominal:totalLama,
-      metodeBayar:TF.metode,
-      rekening:TF.metode==='TUNAI'?'':(el.rekening?el.rekening.value:''),
+      metodeBayar:'TUNAI',
+      rekening:'',
       pelanggan:pelanggan,
       catatan:catatanBersama,
       isTukarTambah:true,
@@ -1371,10 +1413,11 @@ SUB.ftrx=f=>{
       fotoRaw:fotoRaw
     };
 
-    // 3 & 4. Transaksi selisih (jika ada): Masuk ke Pemasukan jika tambah uang, ke Pengeluaran jika uang kembali
+    // 3 & 4. Transaksi selisih — HANYA bagian ini yang memakai metode asli (TRANSFER/QRIS/EDC)
+    // Sehingga yang masuk ke rekening bank HANYA sisa transaksi, bukan total penjualan/buyback.
     let pSelisih=null;
     if(sisa>0){
-      // 3. Pelanggan menambah uang -> riwayat Pemasukan
+      // 3. Pelanggan menambah uang -> riwayat Pemasukan (HANYA INI yang masuk ke bank)
       pSelisih={
         jenis:'JASA',
         logam:'-',
@@ -1382,8 +1425,8 @@ SUB.ftrx=f=>{
         kadar:'',
         berat:0,
         nominal:sisa,
-        metodeBayar:TF.metode,
-        rekening:TF.metode==='TUNAI'?'':(el.rekening?el.rekening.value:''),
+        metodeBayar:metodeAsli,
+        rekening:rekeningAsli,
         pelanggan:pelanggan,
         catatan:catatanBersama,
         isTukarTambah:true,
@@ -1398,7 +1441,7 @@ SUB.ftrx=f=>{
         fotoRaw:fotoRaw
       };
     }else if(sisa<0){
-      // 4. Toko mengembalikan uang -> riwayat Pengeluaran
+      // 4. Toko mengembalikan uang -> riwayat Pengeluaran (HANYA INI yang masuk ke bank)
       pSelisih={
         jenis:'PENGELUARAN_OPS',
         logam:'-',
@@ -1406,8 +1449,8 @@ SUB.ftrx=f=>{
         kadar:'',
         berat:0,
         nominal:Math.abs(sisa),
-        metodeBayar:TF.metode,
-        rekening:TF.metode==='TUNAI'?'':(el.rekening?el.rekening.value:''),
+        metodeBayar:metodeAsli,
+        rekening:rekeningAsli,
         pelanggan:pelanggan,
         catatan:catatanBersama,
         isTukarTambah:true,
@@ -1554,7 +1597,28 @@ SUB.ftrx=f=>{
     if(j!=='PENGELUARAN_OPS')showStruk(id);
   }
 };
-/* ============ STRUK KASIR TERMAL (BOTSKILWEB-PRO STANDARD) ============ */
+
+/* ============ TERBILANG NOMINAL RUPIAH ============ */
+function terbilang(n) {
+  n = Math.floor(Math.abs(Number(n) || 0));
+  const sat = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  if (n < 12) return sat[n];
+  if (n < 20) return terbilang(n - 10) + ' belas';
+  if (n < 100) return terbilang(Math.floor(n / 10)) + ' puluh' + (n % 10 ? ' ' + terbilang(n % 10) : '');
+  if (n < 200) return 'seratus' + (n > 100 ? ' ' + terbilang(n - 100) : '');
+  if (n < 1000) return terbilang(Math.floor(n / 100)) + ' ratus' + (n % 100 ? ' ' + terbilang(n % 100) : '');
+  if (n < 2000) return 'seribu' + (n > 1000 ? ' ' + terbilang(n - 1000) : '');
+  if (n < 1000000) return terbilang(Math.floor(n / 1000)) + ' ribu' + (n % 1000 ? ' ' + terbilang(n % 1000) : '');
+  if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + ' juta' + (n % 1000000 ? ' ' + terbilang(n % 1000000) : '');
+  if (n < 1000000000000) return terbilang(Math.floor(n / 1000000000)) + ' miliar' + (n % 1000000000 ? ' ' + terbilang(n % 1000000000) : '');
+  return terbilang(Math.floor(n / 1000000000000)) + ' triliun' + (n % 1000000000000 ? ' ' + terbilang(n % 1000000000000) : '');
+}
+function terbilangRp(n) {
+  const t = terbilang(n);
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) + ' Rupiah' : 'Nol Rupiah';
+}
+
+/* ============ CONFIG & PENGATURAN STRUK & NOTA ============ */
 const DEFAULT_STRUK = {
   lebar: '58',
   namaToko: '',
@@ -1572,6 +1636,23 @@ const DEFAULT_STRUK = {
   sosialMedia: 'WA: 0812-4000-xxxx • IG: @permataemasnabire'
 };
 
+const DEFAULT_NOTA = {
+  namaToko: 'TOKO EMAS PUTRI BALI',
+  tagline: 'JUAL BELI EMAS & PERAK',
+  alamat: 'PASAR OYEHE NABIRE',
+  telepon: '0821-2121-0694 / 0821-1240-9240',
+  sosmed: 'Kota Bali Nabire • www.kotabalinabire.com',
+  perhatian1: 'Barang telah ditimbang, disaksikan oleh pembeli.',
+  perhatian2: 'Barang yang kembali dipotong menurut pasaran.',
+  perhatian3: 'Jika barang kembali rusak dibeli hancuran.',
+  perhatian4: 'Barang yang dibeli dari 24 jam sudah dikenakan potongan 100%',
+  pesanTerimaKasih: 'Terima Kasih Atas Kepercayaan Anda',
+  penandaTangan: 'Kasir / Toko',
+  showWatermark: true,
+  showLogo: true,
+  showStempel: true
+};
+
 function getStrukCfg(){
   let cfg = (S && S.setting && S.setting.struk) || {};
   if (typeof cfg === 'string') {
@@ -1586,6 +1667,113 @@ function getStrukCfg(){
     alamat: (S && S.setting && S.setting.alamatToko) || 'Jl. Merdeka No. 45, Oyehe, Nabire',
     telepon: (S && S.setting && S.setting.teleponToko) || '0812-4000-xxxx'
   }, cfg);
+}
+
+function getNotaCfg(){
+  let cfg = (S && S.setting && S.setting.nota) || {};
+  if (typeof cfg === 'string') {
+    try { cfg = JSON.parse(cfg); } catch(e){ cfg = {}; }
+  }
+  const loc = LS.g('pos_nota_config');
+  if (loc) {
+    try { Object.assign(cfg, JSON.parse(loc)); } catch(e){}
+  }
+  return Object.assign({}, DEFAULT_NOTA, cfg);
+}
+
+/* ============ FUNGSI UNIVERSAL PARSER TUKAR TAMBAH ============ */
+function parseTT(t) {
+  if (!t) return null;
+  const isTT = t.jenis === 'TUKAR_TAMBAH' || t.isTukarTambah || !!t.detailTT || (t.catatan && t.catatan.indexOf('TUKAR TAMBAH') !== -1);
+  if (!isTT) return null;
+
+  let dt = t.detailTT;
+  const c = String(t.catatan || '');
+  const ref = t.refTukarTambah || (dt && dt.refTukarTambah) || (c.match(/\[TUKAR TAMBAH #(TT-[^\]]+)\]/) || c.match(/#(TT-[A-Za-z0-9_-]+)/) || [])[1];
+
+  // 1. Cek sibling di S.trx dengan ref yang sama
+  if ((!dt || !dt.baru || !dt.lama) && ref && S && S.trx) {
+    const sib = S.trx.find(x => (x.refTukarTambah === ref || (x.catatan && x.catatan.indexOf(ref) !== -1)) && x.detailTT && x.detailTT.baru);
+    if (sib) dt = sib.detailTT;
+  }
+
+  // 2. Cek __TT__ di catatan transaksi ini
+  if ((!dt || !dt.baru || !dt.lama) && c.indexOf('__TT__') !== -1) {
+    try {
+      const parts = c.split('__TT__');
+      if (parts[1]) dt = JSON.parse(parts[1]);
+    } catch (e) {}
+  }
+
+  // 3. Cek sibling dengan __TT__ di catatan
+  if ((!dt || !dt.baru || !dt.lama) && ref && S && S.trx) {
+    const sibTag = S.trx.find(x => (x.refTukarTambah === ref || (x.catatan && x.catatan.indexOf(ref) !== -1)) && x.catatan && x.catatan.indexOf('__TT__') !== -1);
+    if (sibTag) {
+      try {
+        const parts = sibTag.catatan.split('__TT__');
+        if (parts[1]) dt = JSON.parse(parts[1]);
+      } catch (e) {}
+    }
+  }
+
+  // Jika dt ditemukan lengkap:
+  if (dt && dt.baru && dt.lama) {
+    const nBaru = Number(dt.nilaiBaru != null ? dt.nilaiBaru : (dt.baru.subtotal || 0));
+    const nLama = Number(dt.nilaiLama != null ? dt.nilaiLama : (dt.lama.subtotal || 0));
+    const sisa = Number(dt.sisaBayar != null ? dt.sisaBayar : (nBaru - nLama));
+    return {
+      ref: ref || dt.refTukarTambah || 'TT',
+      baru: dt.baru,
+      lama: dt.lama,
+      nilaiBaru: nBaru,
+      nilaiLama: nLama,
+      sisaBayar: sisa,
+      metodeBayar: dt.metodeBayar || (t.peranTT === 'SELISIH_MASUK' || t.peranTT === 'SELISIH_KELUAR' ? t.metodeBayar : 'TUNAI'),
+      rekening: dt.rekening || t.rekening || ''
+    };
+  }
+
+  // 4. Fallback cerdas dari regex teks catatan
+  const mBaru = c.match(/Baru:\s*([^⇄|]+)/);
+  const mLama = c.match(/Lama:\s*([^|]+)/);
+  const mTambah = c.match(/Tambah Bayar:\s*Rp\s*([\d.,]+)/i);
+  const mKembali = c.match(/Uang Kembali:\s*Rp\s*([\d.,]+)/i);
+  const isPas = /Pas\s*\(Rp\s*0\)/i.test(c);
+
+  let sisaVal = 0;
+  if (mTambah) sisaVal = rpVal(mTambah[1]);
+  else if (mKembali) sisaVal = -rpVal(mKembali[1]);
+  else if (isPas) sisaVal = 0;
+  else if (t.peranTT === 'SELISIH_MASUK') sisaVal = t.nominal;
+  else if (t.peranTT === 'SELISIH_KELUAR') sisaVal = -t.nominal;
+
+  let nBaru = 0, nLama = 0;
+  let bBerat = 0, lBerat = 0, bKadar = '', lKadar = '', bLogam = 'EMAS', lLogam = 'EMAS';
+
+  if (ref && S && S.trx) {
+    const tj = S.trx.find(x => (x.refTukarTambah === ref || (x.catatan && x.catatan.indexOf(ref) !== -1)) && (x.peranTT === 'BARANG_BARU' || x.jenis === 'PENJUALAN'));
+    const tb = S.trx.find(x => (x.refTukarTambah === ref || (x.catatan && x.catatan.indexOf(ref) !== -1)) && (x.peranTT === 'BARANG_LAMA' || x.jenis === 'BUYBACK'));
+    if (tj) { nBaru = tj.nominal; bBerat = tj.berat; bKadar = tj.kadar; bLogam = tj.logam || 'EMAS'; }
+    if (tb) { nLama = tb.nominal; lBerat = tb.berat; lKadar = tb.kadar; lLogam = tb.logam || 'EMAS'; }
+  }
+
+  if (!nBaru && t.peranTT === 'BARANG_BARU') { nBaru = t.nominal; bBerat = t.berat; bKadar = t.kadar; bLogam = t.logam || 'EMAS'; }
+  if (!nLama && t.peranTT === 'BARANG_LAMA') { nLama = t.nominal; lBerat = t.berat; lKadar = t.kadar; lLogam = t.logam || 'EMAS'; }
+
+  if (nBaru && nLama && sisaVal === 0 && !isPas) {
+    sisaVal = nBaru - nLama;
+  }
+
+  return {
+    ref: ref || 'TT',
+    baru: { jenisBarang: mBaru ? mBaru[1].trim() : (t.kategori || 'Barang Baru'), logam: bLogam, kadar: bKadar, berat: bBerat, subtotal: nBaru },
+    lama: { jenisBarang: mLama ? mLama[1].trim() : 'Emas/Perak Lama', logam: lLogam, kadar: lKadar, berat: lBerat, subtotal: nLama },
+    nilaiBaru: nBaru,
+    nilaiLama: nLama,
+    sisaBayar: sisaVal,
+    metodeBayar: t.metodeBayar || 'TUNAI',
+    rekening: t.rekening || ''
+  };
 }
 
 function wrapText(text, width){
@@ -1635,63 +1823,43 @@ function strukText(t, customCfg){
 
   L.push(div2);
   // Item detail
-  const isTT = t.jenis === 'TUKAR_TAMBAH' || t.isTukarTambah || !!t.detailTT || (t.catatan && t.catatan.indexOf('TUKAR TAMBAH') !== -1);
-  if (isTT) {
+  const tt = parseTT(t);
+  if (tt) {
     L.push(ctr('❖ TUKAR TAMBAH PERHIASAN ❖'));
-    const refShow = t.refTukarTambah || (t.detailTT && t.detailTT.refTukarTambah) || (t.catatan && (t.catatan.match(/#(TT-[A-Za-z0-9_-]+)/) || [])[1]);
-    if (refShow) L.push(ctr('REF: #' + refShow));
+    if (tt.ref) L.push(ctr('REF: #' + tt.ref));
     L.push(div2);
 
-    let dt = t.detailTT;
-    if (!dt && refShow && S && S.trx) {
-      const sibling = S.trx.find(x => (x.refTukarTambah === refShow || (x.catatan && x.catatan.indexOf(refShow) !== -1)) && x.detailTT);
-      if (sibling) dt = sibling.detailTT;
+    const b = tt.baru, l = tt.lama;
+    L.push('[ BARANG BARU DIBELI ]');
+    L.push(' ' + (b.jenisBarang || 'Perhiasan') + ' ' + (b.logam || 'EMAS') + ' ' + (b.kadar ? 'Kadar ' + b.kadar : ''));
+    L.push(lr(' ' + gr(b.berat) + (b.hargaPerGram ? ' @ ' + rpS(b.hargaPerGram) : ''), rp(b.subtotal || tt.nilaiBaru)));
+    if (b.ongkos) L.push(lr(' Ongkos Bikin/Custom', rp(b.ongkos)));
+    L.push(lr(' Subtotal Barang Baru', rp(tt.nilaiBaru)));
+
+    L.push(div2);
+    L.push('[ EMAS/PERAK LAMA DITERIMA ]');
+    L.push(' ' + (l.jenisBarang || 'Emas Lama') + ' ' + (l.logam || 'EMAS') + ' ' + (l.kadar ? 'Kadar ' + l.kadar : ''));
+    L.push(lr(' ' + gr(l.berat) + (l.hargaPerGram ? ' @ ' + rpS(l.hargaPerGram) : ''), '(' + rp(l.subtotal || tt.nilaiLama) + ')'));
+    if (l.potongan) L.push(lr(' Potongan Lebur/Uji', '- ' + rp(l.potongan)));
+    L.push(lr(' Total Nilai Diterima', '(' + rp(tt.nilaiLama) + ')'));
+
+    L.push(div1);
+    L.push(lr('TOTAL BARANG BARU', rp(tt.nilaiBaru)));
+    L.push(lr('NILAI BARANG LAMA', '(' + rp(tt.nilaiLama) + ')'));
+    L.push(div2);
+
+    if (tt.sisaBayar > 0) {
+      L.push(lr('SISA DIBAYAR KONSUMEN', rp(tt.sisaBayar)));
+    } else if (tt.sisaBayar < 0) {
+      L.push(lr('KEMBALIAN DARI TOKO', rp(Math.abs(tt.sisaBayar))));
+    } else {
+      L.push(lr('SISA PEMBAYARAN', 'PAS (Rp 0)'));
     }
 
-    if (dt) {
-      const b = dt.baru, l = dt.lama;
-      L.push('[ BARANG BARU DIBELI ]');
-      L.push(' ' + (b.jenisBarang || 'Perhiasan') + ' ' + (b.logam || 'EMAS') + ' ' + (b.kadar ? 'Kadar ' + b.kadar : ''));
-      L.push(lr(' ' + gr(b.berat) + (b.hargaPerGram ? ' @ ' + rpS(b.hargaPerGram) : ''), rp(b.berat * (b.hargaPerGram || 0))));
-      if (b.ongkos) L.push(lr(' Ongkos Bikin/Custom', rp(b.ongkos)));
-      L.push(lr(' Subtotal Barang Baru', rp(dt.nilaiBaru)));
-      L.push(div2);
-      L.push('[ EMAS/PERAK LAMA DITERIMA ]');
-      L.push(' ' + (l.jenisBarang || 'Emas Lama') + ' ' + (l.logam || 'EMAS') + ' ' + (l.kadar ? 'Kadar ' + l.kadar : ''));
-      L.push(lr(' ' + gr(l.berat) + (l.hargaPerGram ? ' @ ' + rpS(l.hargaPerGram) : ''), '(' + rp(l.berat * (l.hargaPerGram || 0)) + ')'));
-      if (l.potongan) L.push(lr(' Potongan Lebur/Uji', '- ' + rp(l.potongan)));
-      L.push(lr(' Total Nilai Diterima', '(' + rp(dt.nilaiLama) + ')'));
-      L.push(div1);
-      L.push(lr('TOTAL BARANG BARU', rp(dt.nilaiBaru)));
-      L.push(lr('NILAI BARANG LAMA', '(' + rp(dt.nilaiLama) + ')'));
-      L.push(div2);
-      if (dt.sisaBayar > 0) {
-        L.push(lr('SISA DIBAYAR KONSUMEN', rp(dt.sisaBayar)));
-      } else if (dt.sisaBayar < 0) {
-        L.push(lr('KEMBALIAN DARI TOKO', rp(Math.abs(dt.sisaBayar))));
-      } else {
-        L.push(lr('SISA PEMBAYARAN', 'PAS (Rp 0)'));
-      }
-    } else {
-      const cleanC = cleanCatatan(t.catatan);
-      const mBaru = cleanC.match(/Baru:\s*([^⇄|]+)/);
-      const mLama = cleanC.match(/Lama:\s*([^|]+)/);
-      const mSisa = cleanC.match(/\|\s*([^|]+)$/);
-      if (mBaru) {
-        L.push('[ BARANG BARU DIBELI ]');
-        wrapText(' ' + mBaru[1].trim(), W).forEach(l => L.push(l));
-      }
-      if (mLama) {
-        L.push(div2);
-        L.push('[ EMAS/PERAK LAMA DITERIMA ]');
-        wrapText(' ' + mLama[1].trim(), W).forEach(l => L.push(l));
-      }
-      L.push(div1);
-      if (mSisa) {
-        L.push(lr('STATUS SISA', mSisa[1].trim()));
-      } else {
-        L.push(lr('NOMINAL TRANSAKSI', rp(t.nominal)));
-      }
+    if (cfg.showMetodeBayar !== false) {
+      const bayarStr = (tt.sisaBayar > 0 ? 'DIBAYAR: ' : tt.sisaBayar < 0 ? 'DIKEMBALIKAN: ' : 'STATUS: ') +
+        tt.metodeBayar + (tt.rekening ? ' (' + tt.rekening + ')' : '');
+      L.push(lr('METODE SISA', bayarStr));
     }
 
     const cleanC = cleanCatatan(t.catatan);
@@ -1724,10 +1892,10 @@ function strukText(t, customCfg){
       L.push('Catatan:');
       wrapText(' ' + noteClean, W).forEach(l => L.push(l));
     }
-  }
 
-  if (cfg.showMetodeBayar !== false) {
-    L.push(lr('METODE', t.metodeBayar + (t.rekening ? ' (' + t.rekening + ')' : '')));
+    if (cfg.showMetodeBayar !== false) {
+      L.push(lr('METODE', t.metodeBayar + (t.rekening ? ' (' + t.rekening + ')' : '')));
+    }
   }
 
   if (t.status !== 'AKTIF') {
@@ -1780,15 +1948,233 @@ function strukBody(t){
   '</div>'+
   photoHtml+
   '<div class="grid" style="gap:8px;margin-top:12px">'+
+    '<button class="btn gold blk" data-a="notaToko" data-v="'+esc(t.transaksiId)+'"'+(sync?' disabled':'')+' style="font-weight:700;padding:11px 16px;font-size:14px">'+ic('file','s')+' Cetak Nota Toko Resmi (Putri Bali)</button>'+
     '<div class="row2">'+
-      '<button class="btn pri" data-a="printbt"'+(sync?' disabled':'')+'>'+ic('bluetooth','s')+' Cetak Bluetooth</button>'+
-      '<button class="btn blk" data-a="print"'+(sync?' disabled':'')+'>'+ic('printer','s')+' Cetak Dialog</button>'+
+      '<button class="btn pri" data-a="printbt"'+(sync?' disabled':'')+'>'+ic('bluetooth','s')+' Cetak Bluetooth (Thermal)</button>'+
+      '<button class="btn blk" data-a="print"'+(sync?' disabled':'')+'>'+ic('printer','s')+' Cetak Struk (Dialog)</button>'+
     '</div>'+
     '<button class="btn gh" data-a="wa"'+(sync?' disabled':'')+'>'+ic('send','s')+' Kirim ke WhatsApp</button>'+
   '</div>'+
   (t.status==='AKTIF'&&!sync?'<button class="btn bad blk" style="margin-top:10px" data-a="batal" data-v="'+esc(t.transaksiId)+'">'+ic('undo','s')+(isO()?' Batalkan Nota':' Ajukan Pembatalan')+'</button>':'')+
   (sync?'<small style="display:block;margin-top:8px;text-align:center">Nomor nota sedang diproses server…</small>':'');
 }
+
+/* ============ DOKUMEN NOTA TOKO RESMI PUTRI BALI ============ */
+function notaTokoHTML(t, customCfg){
+  if (!t) return '';
+  const nCfg = customCfg || getNotaCfg();
+  const tt = parseTT(t);
+
+  let rows = [];
+  let totalBayar = t.nominal;
+  let labelTotal = 'TOTAL Rp.';
+  let terbilangStr = '';
+
+  if (tt) {
+    const b = tt.baru, l = tt.lama;
+    rows.push({
+      qty: 1,
+      nama: (b.jenisBarang || 'Perhiasan Emas/Perak') + ' (Barang Baru)',
+      karat: (b.logam || 'EMAS') + (b.kadar ? ' ' + b.kadar + '%' : ''),
+      berat: gr(b.berat),
+      jumlah: rp(tt.nilaiBaru)
+    });
+    rows.push({
+      qty: 1,
+      nama: (l.jenisBarang || 'Emas/Perak Lama') + ' (Diterima Buyback)',
+      karat: (l.logam || 'EMAS') + (l.kadar ? ' ' + l.kadar + '%' : ''),
+      berat: gr(l.berat),
+      jumlah: '(' + rp(tt.nilaiLama) + ')'
+    });
+
+    const sisa = tt.sisaBayar;
+    if (sisa > 0) {
+      rows.push({
+        qty: '-',
+        nama: 'SISA YANG HARUS DIBAYAR KONSUMEN',
+        karat: '-',
+        berat: '-',
+        jumlah: rp(sisa)
+      });
+      totalBayar = sisa;
+      labelTotal = 'SISA Rp.';
+      terbilangStr = terbilangRp(sisa);
+    } else if (sisa < 0) {
+      rows.push({
+        qty: '-',
+        nama: 'UANG KEMBALI DARI TOKO KE KONSUMEN',
+        karat: '-',
+        berat: '-',
+        jumlah: rp(Math.abs(sisa))
+      });
+      totalBayar = Math.abs(sisa);
+      labelTotal = 'KEMBALI Rp.';
+      terbilangStr = 'Kembali ' + terbilangRp(Math.abs(sisa));
+    } else {
+      rows.push({
+        qty: '-',
+        nama: 'SISA PEMBAYARAN (PAS / LUNAS)',
+        karat: '-',
+        berat: '-',
+        jumlah: 'Rp 0'
+      });
+      totalBayar = 0;
+      labelTotal = 'SISA Rp.';
+      terbilangStr = 'Nol Rupiah (Pas)';
+    }
+  } else if (t.jenis === 'BUYBACK') {
+    rows.push({
+      qty: 1,
+      nama: (t.kategori || 'Buyback Perhiasan') + (t.catatan && t.catatan.indexOf('[TUKAR TAMBAH') === -1 && cleanCatatan(t.catatan) ? ' - ' + cleanCatatan(t.catatan) : ''),
+      karat: (t.logam || 'EMAS') + (t.kadar ? ' ' + t.kadar + '%' : ''),
+      berat: gr(t.berat),
+      jumlah: rp(t.nominal)
+    });
+    totalBayar = t.nominal;
+    labelTotal = 'TOTAL Rp.';
+    terbilangStr = terbilangRp(t.nominal);
+  } else {
+    // Penjualan atau Jasa
+    const namaBrg = (t.kategori || (t.jenis === 'JASA' ? 'Ongkos Bikin / Servis' : 'Perhiasan Emas/Perak')) +
+      (t.catatan && t.catatan.indexOf('[TUKAR TAMBAH') === -1 && cleanCatatan(t.catatan) ? ' (' + cleanCatatan(t.catatan) + ')' : '');
+    rows.push({
+      qty: 1,
+      nama: namaBrg,
+      karat: (t.logam || (t.jenis === 'JASA' ? '-' : 'EMAS')) + (t.kadar ? ' ' + t.kadar + '%' : ''),
+      berat: t.berat ? gr(t.berat) : '-',
+      jumlah: rp(t.nominal)
+    });
+    totalBayar = t.nominal;
+    labelTotal = 'TOTAL Rp.';
+    terbilangStr = terbilangRp(t.nominal);
+  }
+
+  // Lengkapi baris tabel agar minimal ada 5 baris seperti buku nota
+  while (rows.length < 5) {
+    rows.push({ qty: '', nama: '&nbsp;', karat: '', berat: '', jumlah: '' });
+  }
+
+  const rowsHtml = rows.map(r => 
+    '<tr>'+
+      '<td style="text-align:center">'+r.qty+'</td>'+
+      '<td><b>'+r.nama+'</b></td>'+
+      '<td style="text-align:center">'+r.karat+'</td>'+
+      '<td style="text-align:center">'+r.berat+'</td>'+
+      '<td style="text-align:right;font-weight:700">'+r.jumlah+'</td>'+
+    '</tr>'
+  ).join('');
+
+  const noNota = nota(t);
+  const tglNota = tgl(t.waktu);
+  const namaCust = esc(t.pelanggan || 'Pelanggan Umum');
+  const hpCust = esc(t.telepon || '-');
+  const almtCust = esc(t.alamat || 'Nabire, Papua Tengah');
+  const watermarkClass = nCfg.showWatermark !== false ? 'with-watermark' : 'no-watermark';
+
+  return '<div class="nota-toko-doc '+watermarkClass+'">'+
+    '<div class="nota-header">'+
+      '<div class="nota-brand">'+
+        (nCfg.showLogo !== false ? '<img src="img/logo-putri-bali.png" class="nota-logo" alt="Putri Bali Logo" onerror="this.style.display=\'none\'">' : '')+
+        '<div class="nota-store-info">'+
+          '<div class="nota-toko-sub">'+esc(nCfg.namaToko || 'TOKO EMAS PUTRI BALI')+'</div>'+
+          '<div class="nota-toko-name">'+esc(nCfg.tagline || 'JUAL BELI EMAS & PERAK')+'</div>'+
+          '<div class="nota-toko-contact">'+
+            (nCfg.alamat ? '<span>'+ic('pin','s')+' '+esc(nCfg.alamat)+'</span>' : '')+
+            (nCfg.telepon ? '<span>'+ic('phone','s')+' '+esc(nCfg.telepon)+'</span>' : '')+
+            (nCfg.sosmed ? '<span class="nota-socials">'+ic('sparkle','s')+' '+esc(nCfg.sosmed)+'</span>' : '')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="nota-meta">'+
+        '<div class="nota-meta-row"><span>Tanggal</span><span class="dots">: '+tglNota+'</span></div>'+
+        '<div class="nota-meta-row"><span>Nama</span><span class="dots">: '+namaCust+'</span></div>'+
+        '<div class="nota-meta-row"><span>No. HP</span><span class="dots">: '+hpCust+'</span></div>'+
+        '<div class="nota-meta-row"><span>Alamat</span><span class="dots">: '+almtCust+'</span></div>'+
+        '<div class="nota-meta-row nota-no-row"><span>NOTA NO</span><span class="dots">: <b>#'+noNota+'</b></span></div>'+
+      '</div>'+
+    '</div>'+
+    '<table class="nota-table">'+
+      '<thead>'+
+        '<tr>'+
+          '<th style="width:7%;text-align:center">QTY</th>'+
+          '<th style="width:42%">NAMA BARANG</th>'+
+          '<th style="width:20%;text-align:center">KARAT/EMAS</th>'+
+          '<th style="width:13%;text-align:center">BERAT</th>'+
+          '<th style="width:18%;text-align:right">JUMLAH</th>'+
+        '</tr>'+
+      '</thead>'+
+      '<tbody>'+rowsHtml+'</tbody>'+
+    '</table>'+
+    '<div class="nota-calc-row">'+
+      '<div class="nota-terbilang-box">'+
+        '<span class="terbilang-lbl">Terbilang :</span>'+
+        '<span class="terbilang-val">'+terbilangStr+'</span>'+
+      '</div>'+
+      '<div class="nota-total-box">'+
+        '<span class="total-lbl">'+labelTotal+'</span>'+
+        '<span class="total-val">'+rp(totalBayar)+'</span>'+
+      '</div>'+
+    '</div>'+
+    '<div class="nota-footer">'+
+      '<div class="nota-perhatian">'+
+        '<div class="perhatian-title">PERHATIAN !!!</div>'+
+        '<ol class="perhatian-list">'+
+          '<li>'+esc(nCfg.perhatian1 || 'Barang telah ditimbang, disaksikan oleh pembeli.')+'</li>'+
+          '<li>'+esc(nCfg.perhatian2 || 'Barang yang kembali dipotong menurut pasaran.')+'</li>'+
+          '<li>'+esc(nCfg.perhatian3 || 'Jika barang kembali rusak dibeli hancuran.')+'</li>'+
+          '<li>'+esc(nCfg.perhatian4 || 'Barang yang dibeli dari 24 jam sudah dikenakan potongan 100%')+'</li>'+
+        '</ol>'+
+        (nCfg.pesanTerimaKasih ? '<div class="nota-thanks">'+esc(nCfg.pesanTerimaKasih)+'</div>' : '')+
+      '</div>'+
+      '<div class="nota-signature">'+
+        '<div class="sig-title">Hormat Kami,</div>'+
+        '<div class="sig-stamp-box">'+
+          (nCfg.showStempel !== false ? '<img src="img/stempel-putri-bali.png" class="nota-stamp-img" alt="Stempel Putri Bali" onerror="this.style.display=\'none\'">' : '')+
+        '</div>'+
+        '<div class="sig-name">( '+esc(nCfg.penandaTangan || uname(t.operatorId) || 'Kasir / Toko')+' )</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function printNotaToko(t, customCfg){
+  const pa = $('#print-area');
+  const paN = $('#print-nota-area');
+  if (pa) { pa.textContent = ''; pa.style.display = 'none'; }
+  if (paN) {
+    paN.innerHTML = notaTokoHTML(t, customCfg);
+    paN.style.display = 'block';
+  }
+  window.print();
+}
+
+function previewNotaToko(t){
+  if (!t) return;
+  RC = t.transaksiId;
+  const content = '<div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+      '<span class="tag gold" style="font-size:12px">Format Nota Toko Emas &amp; Perak Putri Bali (Pasar Oyehe Nabire)</span>'+
+    '</div>'+
+    '<div style="overflow-x:auto;background:#e5e7eb;padding:12px;border-radius:10px;margin-bottom:12px">'+
+      notaTokoHTML(t)+
+    '</div>'+
+    '<div class="row2">'+
+      '<button class="btn pri blk" data-a="printNotaDirect" data-v="'+esc(t.transaksiId)+'">'+ic('printer','s')+' Cetak Nota / Simpan PDF</button>'+
+      '<button class="btn gh" data-a="trx" data-v="'+esc(t.transaksiId)+'">Kembali ke Struk Kasir</button>'+
+    '</div>';
+  modal('Nota Resmi — Toko Emas &amp; Perak Putri Bali', content);
+}
+
+A.notaToko = v => {
+  const t = findTrx(v || RC);
+  if (!t) return;
+  previewNotaToko(t);
+};
+
+A.printNotaDirect = v => {
+  const t = findTrx(v || RC);
+  if (!t) return;
+  printNotaToko(t);
+};
 
 A.viewpic = v => modal('Pratinjau Foto Bukti', '<div style="text-align:center"><img src="'+esc(v)+'" style="max-width:100%;max-height:80vh;border-radius:12px;box-shadow:var(--sh2);display:inline-block"></div>');
 
@@ -1801,7 +2187,10 @@ A.print = () => {
   if (!t) return;
   const cfg = getStrukCfg();
   const pa = $('#print-area');
+  const paN = $('#print-nota-area');
+  if (paN) { paN.innerHTML = ''; paN.style.display = 'none'; }
   if (pa) {
+    pa.style.display = 'block';
     pa.className = (cfg.lebar === '80' ? 'p80' : 'p58');
     pa.textContent = strukText(t, cfg);
   }
@@ -1922,8 +2311,12 @@ A.printbt_direct = () => { const t = findTrx(RC); if (t) printViaBluetooth(struk
 function waOpen(text){ const a = document.createElement('a'); a.href = 'https://wa.me/?text=' + encodeURIComponent(text); a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
 A.wa = () => { const t = findTrx(RC); if(t) waOpen(strukText(t)); };
 
-F.strukConfig = function(){
+let _cfgTab = 'nota'; // tab aktif: 'nota' atau 'thermal'
+
+F.strukConfig = function(openTab){
+  if (openTab) _cfgTab = openTab;
   const cfg = getStrukCfg();
+  const nCfg = getNotaCfg();
   const demoTrx = S.trx.find(live) || {
     transaksiId: 'TRX-SAMPLE-01',
     waktu: nowWIT(),
@@ -1939,65 +2332,200 @@ F.strukConfig = function(){
     status: 'AKTIF'
   };
 
-  modal('Pengaturan & Format Struk Kasir Termal',
-    '<div class="grid" style="gap:20px">'+
-      '<div class="grid g2" style="gap:20px;align-items:start">'+
-        '<div>'+
-          '<div class="card" style="padding:16px;margin-bottom:14px">'+
-            '<div class="hd" style="margin-bottom:10px"><h3>Ukuran Kertas Thermal Printer</h3></div>'+
-            '<label class="fld"><span class="lb">Pilihan Lebar Kertas Struk</span>'+
-              '<select class="inp" id="sc_lebar" data-in="scchange">'+
-                '<option value="58"'+(cfg.lebar==='58'?' selected':'')+'>58 mm — Standar Mini POS (32 Karakter)</option>'+
-                '<option value="80"'+(cfg.lebar==='80'?' selected':'')+'>80 mm — Standar Kasir Besar (44 Karakter)</option>'+
-              '</select>'+
-              '<small>Ukuran 58mm cocok untuk printer bluetooth portabel / kasir mini POS. 80mm untuk printer kasir desktop USB/LAN.</small>'+
-            '</label>'+
-          '</div>'+
+  const tabNota = _cfgTab === 'nota';
 
-          '<div class="card" style="padding:16px;margin-bottom:14px">'+
-            '<div class="hd" style="margin-bottom:10px"><h3>Identitas Header Struk</h3></div>'+
-            '<label class="fld"><span class="lb">Nama Toko di Struk</span><input class="inp" id="sc_namaToko" value="'+esc(cfg.namaToko)+'" data-in="scchange"></label>'+
-            '<label class="fld"><span class="lb">Tagline / Cabang</span><input class="inp" id="sc_tagline" value="'+esc(cfg.tagline)+'" data-in="scchange"></label>'+
-            '<label class="fld"><span class="lb">Alamat Toko Lengkap</span><textarea class="inp" id="sc_alamat" data-in="scchange" style="min-height:60px">'+esc(cfg.alamat)+'</textarea></label>'+
-            '<label class="fld"><span class="lb">No. Telepon / WhatsApp Toko</span><input class="inp" id="sc_telepon" value="'+esc(cfg.telepon)+'" data-in="scchange"></label>'+
-          '</div>'+
-
-          '<div class="card" style="padding:16px;margin-bottom:14px">'+
-            '<div class="hd" style="margin-bottom:10px"><h3>Elemen &amp; Informasi Transaksi</h3></div>'+
-            '<label class="chk"><input type="checkbox" id="sc_showLogo" '+(cfg.showLogo?'checked':'')+' data-in="scchange"> Tampilkan Simbol Permata (Logo Top)</label>'+
-            '<label class="chk"><input type="checkbox" id="sc_showKasir" '+(cfg.showKasir?'checked':'')+' data-in="scchange"> Tampilkan Nama Kasir / Operator Shift</label>'+
-            '<label class="chk"><input type="checkbox" id="sc_showWaktu" '+(cfg.showWaktu?'checked':'')+' data-in="scchange"> Tampilkan Tanggal &amp; Jam WIT Transaksi</label>'+
-            '<label class="chk"><input type="checkbox" id="sc_showDetailBarang" '+(cfg.showDetailBarang?'checked':'')+' data-in="scchange"> Tampilkan Rincian Gramasi &amp; Kadar Emas</label>'+
-            '<label class="chk"><input type="checkbox" id="sc_showMetodeBayar" '+(cfg.showMetodeBayar?'checked':'')+' data-in="scchange"> Tampilkan Metode Pembayaran / Bank QRIS</label>'+
-            '<label class="chk"><input type="checkbox" id="sc_showQrNota" '+(cfg.showQrNota?'checked':'')+' data-in="scchange"> Tampilkan Kode Verifikasi Digital Nota</label>'+
-          '</div>'+
-
-          '<div class="card" style="padding:16px">'+
-            '<div class="hd" style="margin-bottom:10px"><h3>Catatan Kaki (Footer &amp; Kebijakan)</h3></div>'+
-            '<label class="fld"><span class="lb">Pesan Ucapan Terima Kasih</span><input class="inp" id="sc_pesanTerimaKasih" value="'+esc(cfg.pesanTerimaKasih)+'" data-in="scchange"></label>'+
-            '<label class="fld"><span class="lb">Kebijakan Garansi / Buyback Toko</span><textarea class="inp" id="sc_kebijakan" data-in="scchange" style="min-height:76px">'+esc(cfg.kebijakan)+'</textarea></label>'+
-            '<label class="fld"><span class="lb">Media Sosial / Instagram Toko</span><input class="inp" id="sc_sosialMedia" value="'+esc(cfg.sosialMedia)+'" data-in="scchange"></label>'+
-          '</div>'+
+  /* --- Panel Nota Toko --- */
+  const notaPanel =
+    '<div class="grid g2" style="gap:20px;align-items:start">'+
+      '<div>'+
+        '<div class="card" style="padding:16px;margin-bottom:14px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Identitas Toko (Nota Resmi)</h3></div>'+
+          '<label class="fld"><span class="lb">Nama Toko</span><input class="inp" id="nc_namaToko" value="'+esc(nCfg.namaToko)+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Tagline / Jenis Usaha</span><input class="inp" id="nc_tagline" value="'+esc(nCfg.tagline)+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Alamat Toko</span><input class="inp" id="nc_alamat" value="'+esc(nCfg.alamat)+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Telepon / WhatsApp</span><input class="inp" id="nc_telepon" value="'+esc(nCfg.telepon)+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Website / Media Sosial</span><input class="inp" id="nc_sosmed" value="'+esc(nCfg.sosmed||'')+'" data-in="notachange"></label>'+
         '</div>'+
-
-        '<div>'+
-          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
-            '<b>Live Preview Struk Termal</b>'+
-            '<button class="btn xs pri" data-a="struktestprint">'+ic('printer','s')+' Cetak Uji Coba</button>'+
+        '<div class="card" style="padding:16px;margin-bottom:14px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Keterangan Perhatian (4 Butir)</h3></div>'+
+          '<label class="fld"><span class="lb">Perhatian 1</span><input class="inp" id="nc_p1" value="'+esc(nCfg.perhatian1||'')+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Perhatian 2</span><input class="inp" id="nc_p2" value="'+esc(nCfg.perhatian2||'')+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Perhatian 3</span><input class="inp" id="nc_p3" value="'+esc(nCfg.perhatian3||'')+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Perhatian 4</span><input class="inp" id="nc_p4" value="'+esc(nCfg.perhatian4||'')+'" data-in="notachange"></label>'+
+        '</div>'+
+        '<div class="card" style="padding:16px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Footer Nota</h3></div>'+
+          '<label class="fld"><span class="lb">Ucapan Terima Kasih</span><input class="inp" id="nc_terimakasih" value="'+esc(nCfg.pesanTerimaKasih||'')+'" data-in="notachange"></label>'+
+          '<label class="fld"><span class="lb">Nama Penanda Tangan / Kasir</span><input class="inp" id="nc_penandatangan" value="'+esc(nCfg.penandaTangan||'')+'" data-in="notachange"></label>'+
+          '<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">'+
+            '<label class="chk"><input type="checkbox" id="nc_showWatermark" '+(nCfg.showWatermark!==false?'checked':'')+' data-in="notachange"> Tampilkan Watermark Teks Toko</label>'+
+            '<label class="chk"><input type="checkbox" id="nc_showLogo" '+(nCfg.showLogo!==false?'checked':'')+' data-in="notachange"> Tampilkan Logo Toko</label>'+
+            '<label class="chk"><input type="checkbox" id="nc_showStempel" '+(nCfg.showStempel!==false?'checked':'')+' data-in="notachange"> Tampilkan Stempel / Cap Toko</label>'+
           '</div>'+
-          '<div class="struk-preview-box">'+
-            '<div class="struk-paper '+(cfg.lebar==='80'?'w80':'w58')+'" id="sc-preview">'+esc(strukText(demoTrx,cfg))+'</div>'+
-          '</div>'+
-          '<small style="display:block;margin-top:10px;color:var(--mut);text-align:center">Preview diperbarui secara langsung saat Anda mengetik atau mengubah opsi di samping.</small>'+
         '</div>'+
       '</div>'+
+      '<div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+          '<b>Preview Nota Toko Resmi</b>'+
+          '<button class="btn xs pri" data-a="notatestprint">'+ic('printer','s')+' Uji Cetak Nota</button>'+
+        '</div>'+
+        '<div style="overflow-x:auto;background:#e5e7eb;padding:10px;border-radius:10px;max-height:60vh;overflow-y:auto" id="nc-preview-wrap">'+
+          notaTokoHTML(demoTrx, nCfg)+
+        '</div>'+
+        '<small style="display:block;margin-top:8px;color:var(--mut);text-align:center">Preview diperbarui langsung saat Anda mengetik.</small>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">'+
+      '<button class="btn gh" data-a="notareset">'+ic('refresh','s')+' Reset Nota ke Standar</button>'+
+      '<button class="btn pri" data-a="notasave">'+ic('check','s')+' Simpan Pengaturan Nota</button>'+
+    '</div>';
 
-      '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">'+
-        '<button class="btn gh" data-a="strukreset">'+ic('refresh','s')+' Reset ke Standar</button>'+
-        '<button class="btn pri" data-a="struksave">'+ic('check','s')+' Simpan Pengaturan Struk</button>'+
+  /* --- Panel Struk Termal --- */
+  const struktPanel =
+    '<div class="grid g2" style="gap:20px;align-items:start">'+
+      '<div>'+
+        '<div class="card" style="padding:16px;margin-bottom:14px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Ukuran Kertas Thermal Printer</h3></div>'+
+          '<label class="fld"><span class="lb">Pilihan Lebar Kertas Struk</span>'+
+            '<select class="inp" id="sc_lebar" data-in="scchange">'+
+              '<option value="58"'+(cfg.lebar==='58'?' selected':'')+'>58 mm — Standar Mini POS (32 Karakter)</option>'+
+              '<option value="80"'+(cfg.lebar==='80'?' selected':'')+'>80 mm — Standar Kasir Besar (44 Karakter)</option>'+
+            '</select>'+
+            '<small>58mm untuk printer bluetooth portabel. 80mm untuk printer kasir desktop.</small>'+
+          '</label>'+
+        '</div>'+
+        '<div class="card" style="padding:16px;margin-bottom:14px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Identitas Header Struk</h3></div>'+
+          '<label class="fld"><span class="lb">Nama Toko di Struk</span><input class="inp" id="sc_namaToko" value="'+esc(cfg.namaToko)+'" data-in="scchange"></label>'+
+          '<label class="fld"><span class="lb">Tagline / Cabang</span><input class="inp" id="sc_tagline" value="'+esc(cfg.tagline)+'" data-in="scchange"></label>'+
+          '<label class="fld"><span class="lb">Alamat Toko Lengkap</span><textarea class="inp" id="sc_alamat" data-in="scchange" style="min-height:60px">'+esc(cfg.alamat)+'</textarea></label>'+
+          '<label class="fld"><span class="lb">No. Telepon / WhatsApp Toko</span><input class="inp" id="sc_telepon" value="'+esc(cfg.telepon)+'" data-in="scchange"></label>'+
+        '</div>'+
+        '<div class="card" style="padding:16px;margin-bottom:14px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Elemen &amp; Informasi Transaksi</h3></div>'+
+          '<label class="chk"><input type="checkbox" id="sc_showLogo" '+(cfg.showLogo?'checked':'')+' data-in="scchange"> Tampilkan Simbol Permata (Logo Top)</label>'+
+          '<label class="chk"><input type="checkbox" id="sc_showKasir" '+(cfg.showKasir?'checked':'')+' data-in="scchange"> Tampilkan Nama Kasir / Operator Shift</label>'+
+          '<label class="chk"><input type="checkbox" id="sc_showWaktu" '+(cfg.showWaktu?'checked':'')+' data-in="scchange"> Tampilkan Tanggal &amp; Jam WIT Transaksi</label>'+
+          '<label class="chk"><input type="checkbox" id="sc_showDetailBarang" '+(cfg.showDetailBarang?'checked':'')+' data-in="scchange"> Tampilkan Rincian Gramasi &amp; Kadar Emas</label>'+
+          '<label class="chk"><input type="checkbox" id="sc_showMetodeBayar" '+(cfg.showMetodeBayar?'checked':'')+' data-in="scchange"> Tampilkan Metode Pembayaran / Bank QRIS</label>'+
+          '<label class="chk"><input type="checkbox" id="sc_showQrNota" '+(cfg.showQrNota?'checked':'')+' data-in="scchange"> Tampilkan Kode Verifikasi Digital Nota</label>'+
+        '</div>'+
+        '<div class="card" style="padding:16px">'+
+          '<div class="hd" style="margin-bottom:10px"><h3>Catatan Kaki (Footer &amp; Kebijakan)</h3></div>'+
+          '<label class="fld"><span class="lb">Pesan Ucapan Terima Kasih</span><input class="inp" id="sc_pesanTerimaKasih" value="'+esc(cfg.pesanTerimaKasih)+'" data-in="scchange"></label>'+
+          '<label class="fld"><span class="lb">Kebijakan Garansi / Buyback Toko</span><textarea class="inp" id="sc_kebijakan" data-in="scchange" style="min-height:76px">'+esc(cfg.kebijakan)+'</textarea></label>'+
+          '<label class="fld"><span class="lb">Media Sosial / Instagram Toko</span><input class="inp" id="sc_sosialMedia" value="'+esc(cfg.sosialMedia)+'" data-in="scchange"></label>'+
+        '</div>'+
+      '</div>'+
+      '<div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+          '<b>Live Preview Struk Termal</b>'+
+          '<button class="btn xs pri" data-a="struktestprint">'+ic('printer','s')+' Cetak Uji Coba</button>'+
+        '</div>'+
+        '<div class="struk-preview-box">'+
+          '<div class="struk-paper '+(cfg.lebar==='80'?'w80':'w58')+'" id="sc-preview">'+esc(strukText(demoTrx,cfg))+'</div>'+
+        '</div>'+
+        '<small style="display:block;margin-top:10px;color:var(--mut);text-align:center">Preview diperbarui secara langsung saat Anda mengetik atau mengubah opsi di samping.</small>'+
+      '</div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap">'+
+      '<button class="btn gh" data-a="strukreset">'+ic('refresh','s')+' Reset ke Standar</button>'+
+      '<button class="btn pri" data-a="struksave">'+ic('check','s')+' Simpan Pengaturan Struk</button>'+
+    '</div>';
+
+  modal('Pengaturan Struk Kasir & Nota Toko Resmi',
+    '<div>'+
+      '<div class="seg" style="margin-bottom:16px">'+
+        '<button class="'+(tabNota?'on':'')+'" data-a="tabStrukNota" data-v="nota">'+ic('file','s')+' Nota Toko Resmi</button>'+
+        '<button class="'+(tabNota?'':'on')+'" data-a="tabStrukNota" data-v="thermal">'+ic('printer','s')+' Struk Kasir Termal</button>'+
+      '</div>'+
+      '<div id="strukcfg-panel">'+
+        (tabNota ? notaPanel : struktPanel)+
       '</div>'+
     '</div>');
 };
+
+A.tabStrukNota = v => {
+  _cfgTab = v;
+  F.strukConfig();
+};
+
+IN.notachange = () => {
+  const nCfg = {
+    namaToko: $('#nc_namaToko') ? $('#nc_namaToko').value : '',
+    tagline: $('#nc_tagline') ? $('#nc_tagline').value : '',
+    alamat: $('#nc_alamat') ? $('#nc_alamat').value : '',
+    telepon: $('#nc_telepon') ? $('#nc_telepon').value : '',
+    sosmed: $('#nc_sosmed') ? $('#nc_sosmed').value : '',
+    perhatian1: $('#nc_p1') ? $('#nc_p1').value : '',
+    perhatian2: $('#nc_p2') ? $('#nc_p2').value : '',
+    perhatian3: $('#nc_p3') ? $('#nc_p3').value : '',
+    perhatian4: $('#nc_p4') ? $('#nc_p4').value : '',
+    pesanTerimaKasih: $('#nc_terimakasih') ? $('#nc_terimakasih').value : '',
+    penandaTangan: $('#nc_penandatangan') ? $('#nc_penandatangan').value : '',
+    showWatermark: $('#nc_showWatermark') ? $('#nc_showWatermark').checked : true,
+    showLogo: $('#nc_showLogo') ? $('#nc_showLogo').checked : true,
+    showStempel: $('#nc_showStempel') ? $('#nc_showStempel').checked : true
+  };
+  const demoTrx = S.trx.find(live) || {
+    transaksiId: 'TRX-PREVIEW-01', waktu: nowWIT(), jenis: 'PENJUALAN',
+    kategori: 'CINCIN PERMATA EMAS', logam: 'EMAS', kadar: '700',
+    berat: 3.25, nominal: 2762500, metodeBayar: 'TUNAI',
+    pelanggan: 'Ibu Fatimah (Pelanggan)', operatorId: S.me ? S.me.userId : 'kasir_1', status: 'AKTIF'
+  };
+  const wrap = $('#nc-preview-wrap');
+  if (wrap) wrap.innerHTML = notaTokoHTML(demoTrx, Object.assign({}, DEFAULT_NOTA, nCfg));
+};
+
+A.notasave = () => {
+  const nCfg = {
+    namaToko: $('#nc_namaToko') ? $('#nc_namaToko').value.trim() : '',
+    tagline: $('#nc_tagline') ? $('#nc_tagline').value.trim() : '',
+    alamat: $('#nc_alamat') ? $('#nc_alamat').value.trim() : '',
+    telepon: $('#nc_telepon') ? $('#nc_telepon').value.trim() : '',
+    sosmed: $('#nc_sosmed') ? $('#nc_sosmed').value.trim() : '',
+    perhatian1: $('#nc_p1') ? $('#nc_p1').value.trim() : '',
+    perhatian2: $('#nc_p2') ? $('#nc_p2').value.trim() : '',
+    perhatian3: $('#nc_p3') ? $('#nc_p3').value.trim() : '',
+    perhatian4: $('#nc_p4') ? $('#nc_p4').value.trim() : '',
+    pesanTerimaKasih: $('#nc_terimakasih') ? $('#nc_terimakasih').value.trim() : '',
+    penandaTangan: $('#nc_penandatangan') ? $('#nc_penandatangan').value.trim() : '',
+    showWatermark: $('#nc_showWatermark') ? $('#nc_showWatermark').checked : true,
+    showLogo: $('#nc_showLogo') ? $('#nc_showLogo').checked : true,
+    showStempel: $('#nc_showStempel') ? $('#nc_showStempel').checked : true
+  };
+  LS.s('pos_nota_config', JSON.stringify(nCfg));
+  if (!S.setting) S.setting = {};
+  S.setting.nota = nCfg;
+  mut('settingSimpan', { nota: JSON.stringify(nCfg) }, () => {});
+  closeModal();
+  toast('Pengaturan nota toko berhasil disimpan!', 'ok');
+  if (CUR === 'pengaturan') render();
+};
+
+A.notareset = () => {
+  LS.d('pos_nota_config');
+  if (S.setting) S.setting.nota = DEFAULT_NOTA;
+  mut('settingSimpan', { nota: JSON.stringify(DEFAULT_NOTA) }, () => {});
+  toast('Pengaturan nota dikembalikan ke standar awal', 'ok');
+  F.strukConfig('nota');
+};
+
+A.notatestprint = () => {
+  const demoTrx = S.trx.find(live) || {
+    transaksiId: 'TRX-PREVIEW-01', waktu: nowWIT(), jenis: 'PENJUALAN',
+    kategori: 'CINCIN PERMATA EMAS', logam: 'EMAS', kadar: '700',
+    berat: 3.25, nominal: 2762500, metodeBayar: 'TUNAI',
+    pelanggan: 'Ibu Fatimah (Pelanggan)', operatorId: S.me ? S.me.userId : 'kasir_1', status: 'AKTIF'
+  };
+  const pa = $('#print-area');
+  const paN = $('#print-nota-area');
+  if (pa) { pa.textContent = ''; pa.style.display = 'none'; }
+  if (paN) { paN.innerHTML = notaTokoHTML(demoTrx); paN.style.display = 'block'; }
+  window.print();
+};
+
+A.strukcfg = () => F.strukConfig();
 
 IN.scchange = () => {
   const cfg = {
@@ -2017,18 +2545,10 @@ IN.scchange = () => {
     sosialMedia: $('#sc_sosialMedia') ? $('#sc_sosialMedia').value : ''
   };
   const demoTrx = S.trx.find(live) || {
-    transaksiId: 'TRX-SAMPLE-01',
-    waktu: nowWIT(),
-    jenis: 'PENJUALAN',
-    kategori: 'CINCIN PERMATA EMAS',
-    logam: 'EMAS',
-    kadar: '700',
-    berat: 3.25,
-    nominal: 2762500,
-    metodeBayar: 'TUNAI',
-    pelanggan: 'Ibu Fatimah (Pelanggan)',
-    operatorId: S.me ? S.me.userId : 'kasir_1',
-    status: 'AKTIF'
+    transaksiId: 'TRX-SAMPLE-01', waktu: nowWIT(), jenis: 'PENJUALAN',
+    kategori: 'CINCIN PERMATA EMAS', logam: 'EMAS', kadar: '700',
+    berat: 3.25, nominal: 2762500, metodeBayar: 'TUNAI',
+    pelanggan: 'Ibu Fatimah (Pelanggan)', operatorId: S.me ? S.me.userId : 'kasir_1', status: 'AKTIF'
   };
   const prevEl = $('#sc-preview');
   if (prevEl) {
@@ -2036,8 +2556,6 @@ IN.scchange = () => {
     prevEl.textContent = strukText(demoTrx, cfg);
   }
 };
-
-A.strukcfg = () => F.strukConfig();
 
 A.struksave = () => {
   const cfg = {
@@ -2140,6 +2658,30 @@ function lapStats(){
   const ttGramEmas=tt.filter(t=>(t.detailTT?t.detailTT.baru.logam==='EMAS':t.logam==='EMAS')).reduce((s,t)=>s+(t.detailTT?t.detailTT.baru.berat:t.berat),0);
   const ttGramPerak=tt.filter(t=>(t.detailTT?t.detailTT.baru.logam==='PERAK':t.logam==='PERAK')).reduce((s,t)=>s+(t.detailTT?t.detailTT.baru.berat:t.berat),0);
 
+  // Rekap Rata-Rata Penjualan & Buyback Emas & Perak
+  const ttJualNomEmas = tt.filter(t=>(t.detailTT?t.detailTT.baru.logam==='EMAS':t.logam==='EMAS')).reduce((s,t)=>s+(t.detailTT?t.detailTT.nilaiBaru:(t.nominal>0?t.nominal:0)),0);
+  const ttJualNomPerak = tt.filter(t=>(t.detailTT?t.detailTT.baru.logam==='PERAK':t.logam==='PERAK')).reduce((s,t)=>s+(t.detailTT?t.detailTT.nilaiBaru:(t.nominal>0?t.nominal:0)),0);
+
+  const jEmasNom = jl.filter(t=>t.logam==='EMAS').reduce((s,t)=>s+t.nominal,0) + ttJualNomEmas;
+  const jEmasGram = jl.filter(t=>t.logam==='EMAS').reduce((s,t)=>s+t.berat,0) + ttGramEmas;
+  const jEmasAvg = jEmasGram > 0 ? Math.round(jEmasNom / jEmasGram) : 0;
+
+  const jPerakNom = jl.filter(t=>t.logam==='PERAK').reduce((s,t)=>s+t.nominal,0) + ttJualNomPerak;
+  const jPerakGram = jl.filter(t=>t.logam==='PERAK').reduce((s,t)=>s+t.berat,0) + ttGramPerak;
+  const jPerakAvg = jPerakGram > 0 ? Math.round(jPerakNom / jPerakGram) : 0;
+
+  const ttBbGramEmas = tt.filter(t=>(t.detailTT?t.detailTT.lama.logam==='EMAS':t.logam==='EMAS')).reduce((s,t)=>s+(t.detailTT?t.detailTT.lama.berat:0),0);
+  const ttBbNomEmas = tt.filter(t=>(t.detailTT?t.detailTT.lama.logam==='EMAS':t.logam==='EMAS')).reduce((s,t)=>s+(t.detailTT?t.detailTT.nilaiLama:(t.nominal<0?-t.nominal:0)),0);
+  const bEmasNom = bb.filter(t=>t.logam==='EMAS').reduce((s,t)=>s+t.nominal,0) + ttBbNomEmas;
+  const bEmasGram = bb.filter(t=>t.logam==='EMAS').reduce((s,t)=>s+t.berat,0) + ttBbGramEmas;
+  const bEmasAvg = bEmasGram > 0 ? Math.round(bEmasNom / bEmasGram) : 0;
+
+  const ttBbGramPerak = tt.filter(t=>(t.detailTT?t.detailTT.lama.logam==='PERAK':t.logam==='PERAK')).reduce((s,t)=>s+(t.detailTT?t.detailTT.lama.berat:0),0);
+  const ttBbNomPerak = tt.filter(t=>(t.detailTT?t.detailTT.lama.logam==='PERAK':t.logam==='PERAK')).reduce((s,t)=>s+(t.detailTT?t.detailTT.nilaiLama:(t.nominal<0?-t.nominal:0)),0);
+  const bPerakNom = bb.filter(t=>t.logam==='PERAK').reduce((s,t)=>s+t.nominal,0) + ttBbNomPerak;
+  const bPerakGram = bb.filter(t=>t.logam==='PERAK').reduce((s,t)=>s+t.berat,0) + ttBbGramPerak;
+  const bPerakAvg = bPerakGram > 0 ? Math.round(bPerakNom / bPerakGram) : 0;
+
   return {
     L:L,
     jual:sum(jl)+ttJual,
@@ -2148,7 +2690,13 @@ function lapStats(){
     op:sum(op),
     gram:jl.filter(t=>t.logam==='EMAS').reduce((s,t)=>s+t.berat,0)+ttGramEmas,
     perak:jl.filter(t=>t.logam==='PERAK').reduce((s,t)=>s+t.berat,0)+ttGramPerak,
-    nota:jl.length+js.length+tt.length
+    nota:jl.length+js.length+tt.length,
+    rekap:{
+      jualEmas:{nom:jEmasNom,gram:jEmasGram,avg:jEmasAvg},
+      jualPerak:{nom:jPerakNom,gram:jPerakGram,avg:jPerakAvg},
+      bbEmas:{nom:bEmasNom,gram:bEmasGram,avg:bEmasAvg},
+      bbPerak:{nom:bPerakNom,gram:bPerakGram,avg:bPerakAvg}
+    }
   };
 }
 function lapBody(){
@@ -2179,7 +2727,17 @@ function lapBody(){
     return '<div class="pay-meth-item"><div class="pay-meth-row"><span style="display:inline-flex;align-items:center;gap:8px"><b>'+esc(k)+'</b><span class="tag" style="font-size:11px">'+pct+'%</span></span><span style="font-weight:700;color:var(--ink)">'+rp(amt)+'</span></div><div class="pay-bar-bg"><div class="pay-bar-fill" style="width:'+pct+'%"></div></div></div>';
   }).join('')||empty('Tidak ada data pemasukan.');
 
+  const avgSection = '<div class="card" style="margin:16px 0">'+
+    '<div class="hd"><div><h3>Rekap Nilai Rata-Rata Harga per Gram</h3><small>Perbandingan volume penjualan &amp; buyback logam mulia terhadap nilai transaksi</small></div><span class="tag gold">'+ic('gem','s')+' Emas &amp; Perak</span></div>'+
+    '<div class="rep-avg-grid">'+
+      '<div class="rep-avg-card emas"><div class="rep-avg-hd"><span class="rep-avg-title">Penjualan Emas</span><span class="rep-avg-badge jual">PENJUALAN</span></div><div class="rep-avg-main">'+rp(x.rekap.jualEmas.nom)+'</div><div class="rep-avg-sub">'+nf2.format(x.rekap.jualEmas.gram)+' gr terjual</div><div class="rep-avg-rate"><span class="rep-avg-rate-lbl">Rata-rata:</span><span class="rep-avg-rate-val">'+rp(x.rekap.jualEmas.avg)+'/gr</span></div></div>'+
+      '<div class="rep-avg-card perak"><div class="rep-avg-hd"><span class="rep-avg-title">Penjualan Perak</span><span class="rep-avg-badge jual">PENJUALAN</span></div><div class="rep-avg-main">'+rp(x.rekap.jualPerak.nom)+'</div><div class="rep-avg-sub">'+nf2.format(x.rekap.jualPerak.gram)+' gr terjual</div><div class="rep-avg-rate"><span class="rep-avg-rate-lbl">Rata-rata:</span><span class="rep-avg-rate-val">'+rp(x.rekap.jualPerak.avg)+'/gr</span></div></div>'+
+      '<div class="rep-avg-card emas"><div class="rep-avg-hd"><span class="rep-avg-title">Buyback Emas</span><span class="rep-avg-badge bb">BUYBACK</span></div><div class="rep-avg-main">'+rp(x.rekap.bbEmas.nom)+'</div><div class="rep-avg-sub">'+nf2.format(x.rekap.bbEmas.gram)+' gr dibeli</div><div class="rep-avg-rate"><span class="rep-avg-rate-lbl">Rata-rata:</span><span class="rep-avg-rate-val">'+rp(x.rekap.bbEmas.avg)+'/gr</span></div></div>'+
+      '<div class="rep-avg-card perak"><div class="rep-avg-hd"><span class="rep-avg-title">Buyback Perak</span><span class="rep-avg-badge bb">BUYBACK</span></div><div class="rep-avg-main">'+rp(x.rekap.bbPerak.nom)+'</div><div class="rep-avg-sub">'+nf2.format(x.rekap.bbPerak.gram)+' gr dibeli</div><div class="rep-avg-rate"><span class="rep-avg-rate-lbl">Rata-rata:</span><span class="rep-avg-rate-val">'+rp(x.rekap.bbPerak.avg)+'/gr</span></div></div>'+
+    '</div></div>';
+
   return '<div class="grid g4" style="margin:16px 0">'+kpi('Penjualan Logam',rp(x.jual),'<small>'+nf2.format(x.gram)+' gr emas · '+nf2.format(x.perak)+' gr perak</small>','gem')+kpi('Pemasukan / Jasa',rp(x.jasa),'<small>'+x.nota+' nota</small>','tool')+kpi('Buyback + Pengeluaran',rp(x.bb+x.op),'<small>Buyback '+rpS(x.bb)+' · Ops '+rpS(x.op)+'</small>','up')+kpi('Selisih Kas Operasional',rp(x.jual+x.jasa-x.bb-x.op),'<small>pemasukan − pengeluaran</small>','coin','gold')+'</div>'+
+   avgSection+
    '<div class="grid g2"><div class="card"><div class="hd"><div><h3>Per Hari</h3><small>Ringkasan transaksi harian</small></div><span class="tag">'+sortedDays.length+' Hari</span></div><div class="tbw desk-only"><table><thead><tr><th>Tanggal</th><th class="r">Penjualan</th><th class="r">Buyback</th><th class="r">Ops</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="rep-day-cards mobile-only">'+mobileCards+'</div></div>'+
    '<div class="card"><div class="hd"><div><h3>Metode Pembayaran (Pemasukan)</h3><small>Distribusi pembayaran kasir</small></div><span class="tag gold">'+rp(totalMetode===1&&!Object.keys(metode).length?0:totalMetode)+'</span></div><div style="padding-top:4px">'+metodeList+'</div></div></div>';
 }
@@ -2190,7 +2748,25 @@ P.laporan=function(){
 };
 IN.rpa=v=>{RP.a=v;$('#lap-body').innerHTML=lapBody()};IN.rpb=v=>{RP.b=v;$('#lap-body').innerHTML=lapBody()};
 A.rpre=v=>{RP.b=today();RP.a=v==='m'?RP.b.slice(0,8)+'01':addDays(RP.b,-(+v));RJ='';const e=$('#pg-laporan');e.innerHTML=P.laporan()};
-A.lapwa=()=>{const x=lapStats();waOpen('*LAPORAN '+S.setting.namaToko.toUpperCase()+'*\n'+tgl(RP.a)+' s/d '+tgl(RP.b)+'\n\nPenjualan logam: '+rp(x.jual)+'\nEmas terjual: '+nf2.format(x.gram)+' gr\nPerak terjual: '+nf2.format(x.perak)+' gr\nPendapatan jasa: '+rp(x.jasa)+'\nBuyback: '+rp(x.bb)+'\nPengeluaran ops: '+rp(x.op)+'\n*Selisih: '+rp(x.jual+x.jasa-x.bb-x.op)+'*\nJumlah nota: '+x.nota)};
+A.lapwa=()=>{
+  const x=lapStats();
+  waOpen('*LAPORAN '+S.setting.namaToko.toUpperCase()+'*\n'+
+    tgl(RP.a)+' s/d '+tgl(RP.b)+'\n\n'+
+    'Penjualan logam: '+rp(x.jual)+'\n'+
+    'Emas terjual: '+nf2.format(x.gram)+' gr\n'+
+    'Perak terjual: '+nf2.format(x.perak)+' gr\n'+
+    'Pendapatan jasa: '+rp(x.jasa)+'\n'+
+    'Buyback: '+rp(x.bb)+'\n'+
+    'Pengeluaran ops: '+rp(x.op)+'\n'+
+    '*Selisih: '+rp(x.jual+x.jasa-x.bb-x.op)+'*\n'+
+    'Jumlah nota: '+x.nota+'\n\n'+
+    '*REKAP RATA-RATA HARGA LOGAM:*\n'+
+    '• Penjualan Emas: '+nf2.format(x.rekap.jualEmas.gram)+' gr = '+rp(x.rekap.jualEmas.nom)+' (rata-rata '+rp(x.rekap.jualEmas.avg)+'/gr)\n'+
+    '• Penjualan Perak: '+nf2.format(x.rekap.jualPerak.gram)+' gr = '+rp(x.rekap.jualPerak.nom)+' (rata-rata '+rp(x.rekap.jualPerak.avg)+'/gr)\n'+
+    '• Buyback Emas: '+nf2.format(x.rekap.bbEmas.gram)+' gr = '+rp(x.rekap.bbEmas.nom)+' (rata-rata '+rp(x.rekap.bbEmas.avg)+'/gr)\n'+
+    '• Buyback Perak: '+nf2.format(x.rekap.bbPerak.gram)+' gr = '+rp(x.rekap.bbPerak.nom)+' (rata-rata '+rp(x.rekap.bbPerak.avg)+'/gr)'
+  );
+};
 A.lapx=()=>{
   modal('Ekspor Laporan','<div id="ex-b" class="empty">Menyiapkan file di Google Drive…</div>');
   call('apiCall',[TOKEN,'laporanExport',{dari:RP.a,sampai:RP.b},'']).then(r=>{const b=$('#ex-b');if(!b)return;
@@ -2220,15 +2796,20 @@ P.pengaturan=function(){
     '</div>'+
    '</div>'+
    '<div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,#ffffff 0%,#fffdf8 55%,#fff6db 100%);border-color:rgba(245,179,1,0.35)">'+
-    '<div class="hd"><div><h3>Format &amp; Pengaturan Struk Kasir Termal</h3><small>Kustomisasi cetak nota 58mm / 80mm, header toko, dan kebijakan buyback</small></div>'+
-      '<div class="chips"><button class="btn sm pri" data-a="strukcfg">'+ic('printer','s')+' Kustomisasi Struk</button><button class="btn sm gh" data-a="struktestprint">'+ic('printer','s')+' Cetak Uji Coba</button></div>'+
+    '<div class="hd"><div><h3>Format &amp; Pengaturan Struk &amp; Nota Resmi</h3><small>Kustomisasi nota toko resmi Putri Bali dan struk thermal kasir POS</small></div>'+
+      '<div class="chips">'+
+        '<button class="btn sm pri" data-a="strukcfg">'+ic('sliders','s')+' Pengaturan Struk &amp; Nota</button>'+
+        '<button class="btn sm gh" data-a="notatestprint">'+ic('file','s')+' Uji Cetak Nota</button>'+
+        '<button class="btn sm gh" data-a="struktestprint">'+ic('printer','s')+' Uji Cetak Struk</button>'+
+      '</div>'+
     '</div>'+
     '<div class="grid g3">'+
-      '<div class="mini"><small class="lbl">Ukuran Thermal</small><div class="big" style="font-size:18px">'+(sc.lebar==='80'?'80 mm (Besar)':'58 mm (Mini POS)')+'</div><small>Printer Bluetooth / Desktop</small></div>'+
-      '<div class="mini"><small class="lbl">Header Nota</small><div class="big" style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(sc.namaToko)+'</div><small>'+esc(sc.tagline)+'</small></div>'+
-      '<div class="mini"><small class="lbl">Kontak Struk</small><div class="big" style="font-size:16px">'+esc(sc.telepon||'-')+'</div><small>WhatsApp / Layanan Toko</small></div>'+
+      '<div class="mini"><small class="lbl">Nota Toko</small><div class="big" style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc((getNotaCfg()).namaToko)+'</div><small>'+esc((getNotaCfg()).tagline)+'</small></div>'+
+      '<div class="mini"><small class="lbl">Struk Thermal</small><div class="big" style="font-size:18px">'+(sc.lebar==='80'?'80 mm (Besar)':'58 mm (Mini POS)')+'</div><small>Printer Bluetooth / Desktop</small></div>'+
+      '<div class="mini"><small class="lbl">Kontak Nota</small><div class="big" style="font-size:16px">'+esc((getNotaCfg()).telepon||'-')+'</div><small>WhatsApp / Layanan Toko</small></div>'+
     '</div>'+
    '</div>'+
+
    '<div class="grid g2" style="align-items:start">'+
     '<div class="card"><div class="hd"><h3>Profil &amp; Operasional</h3><button class="btn sm" data-a="profil">'+ic('edit','s')+' Ubah</button></div>'+
     [['Nama toko',s.namaToko],['Alamat',s.alamatToko],['Telepon',s.teleponToko],['Jam masuk standar',s.jamMasuk],['Koordinat toko',s.latitude+', '+s.longitude],['Radius absensi',s.radiusAbsensi+' m'],['Batas approval pengeluaran',rp(s.limitApproval)],['Email notifikasi Owner',s.ownerEmail||'(email akun Owner)']].map(x=>'<div class="tr" style="min-height:44px"><span class="tm"><small>'+x[0]+'</small><b style="white-space:normal">'+esc(x[1]||'-')+'</b></span></div>').join('')+'</div>'+
