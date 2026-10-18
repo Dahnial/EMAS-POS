@@ -40,7 +40,12 @@
 
 <!-- Favicon SVG Data URI -->
 <link rel="icon" type="image/png" href="img/logo-putri-bali.png">
-<link rel="apple-touch-icon" href="img/logo-putri-bali.png">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Putri Bali POS">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="alternate icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23F5B301' d='M6 3h12l4 6-10 13L2 9Z'/%3E%3Cpath fill='%239a6f00' d='M11 3 8 9l4 13 4-13-3-6'/%3E%3Cpath stroke='%23ffffff' stroke-width='1.5' fill='none' d='M2 9h20'/%3E%3C/svg%3E">
 
 <!-- Google Fonts -->
@@ -51,7 +56,7 @@
 <!-- CSS Stylesheet -->
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com">
-<link rel="stylesheet" href="css/style.css?v=3.3">
+<link rel="stylesheet" href="css/style.css?v=3.5">
 
 <!-- Schema.org Structured Data (JSON-LD) -->
 <script type="application/ld+json">
@@ -124,6 +129,8 @@
           <div class="pw"><input class="inp" id="lg-p" type="password" autocomplete="current-password" placeholder="••••••"><button type="button" class="eye" id="lg-eye" aria-label="Tampilkan sandi" data-ic="eye"></button></div>
         </label>
         <button class="btn pri blk" id="lg-go" type="submit">Masuk ke Sistem <span data-ic="arrow"></span></button>
+        <div id="lg-google" class="lg-google hidden"><div class="lg-or"><span>atau</span></div><div id="lg-gbtn"></div><small id="lg-gstat">Gmail admin yang sudah masuk di HP/PC ini akan masuk otomatis.</small></div>
+        <button class="btn gh blk pwa-btn hidden" type="button" data-a="pwainstall" style="margin-top:10px"><span data-ic="download"></span> Install Aplikasi di HP</button>
       </form>
       <div class="demo hidden" id="lg-demo"><span class="lbl">Akses cepat pengujian (demo mode)</span>
         <div class="row2"><button type="button" id="dm-k"><span data-ic="user" class="ic s"></span> Kasir</button><button type="button" id="dm-o"><span data-ic="shield"></span> Owner</button></div></div>
@@ -168,8 +175,8 @@
 <div id="print-area"></div>
 <div id="print-nota-area"></div>
 
-<script src="js/config.js?v=3.3"></script>
-<script src="js/api.js?v=3.3"></script>
-<script src="js/app.js?v=3.3"></script>
+<script src="js/config.js?v=3.5"></script>
+<script src="js/api.js?v=3.5"></script>
+<script src="js/app.js?v=3.5"></script>
 </body>
 </html>

@@ -1,6 +1,30 @@
-# Panduan Instalasi — Putri Bali POS v3.3
+# Panduan Instalasi — Putri Bali POS v3.5
 
-> **Update ke v3.3** (emas brankas, hutang emas toko, kartu karyawan di HP):
+> **Update ke v3.5** (cetak struk/nota bersih, pratinjau nota pas layar, WhatsApp rapi, sedekah nominal cepat, struk pemasukan, bunyi notifikasi, login Gmail admin):
+> 1. Apps Script: ganti seluruh isi **Kode.gs** → **Deploy → Manage deployments → ✏️ → New version → Deploy**. Tanpa setup ulang.
+> 2. Frontend: salin isi ZIP ke repo (**pertahankan `js/config.js`**) → push. Muat ulang paksa di HP/PC (tutup–buka aplikasi).
+>
+> **Mengaktifkan Login Gmail Admin (opsional, sekali saja ±10 menit):**
+> 1. Buka https://console.cloud.google.com dengan Gmail admin → buat/pilih proyek (mis. "Putri Bali POS").
+> 2. Menu **APIs & Services → OAuth consent screen** → User type **External** → isi nama aplikasi & email → simpan. Di bagian *Test users* / *Audience*, tekan **Publish app** (agar tidak kedaluwarsa tiap 7 hari).
+> 3. Menu **APIs & Services → Credentials → Create credentials → OAuth client ID** → Application type **Web application**.
+>    - *Authorized JavaScript origins*: isi alamat aplikasi Anda **tanpa garis miring di akhir**, mis. `https://dahnial.github.io` (tambahkan juga domain sendiri bila ada).
+>    - Tekan **Create** → salin **Client ID** (berakhiran `.apps.googleusercontent.com`).
+> 4. Di aplikasi: **Pengaturan Toko → Login Gmail Admin → Atur Login Gmail** → isi Gmail admin (boleh lebih dari satu, pisahkan koma) dan Client ID → **Simpan**.
+> 5. Cara pakai: di halaman login tekan tab **Owner / Direksi**. Bila Gmail admin sudah masuk di browser itu, aplikasi langsung masuk tanpa kata sandi. Di HP/PC lain atau bila Gmail belum masuk, tekan **Lanjutkan dengan Google** atau isi username & kata sandi Owner seperti biasa.
+> 6. Setelah menekan **Keluar**, login otomatis dimatikan di perangkat itu sampai Anda menekan tombol Google lagi (supaya bisa ganti akun / login manual).
+>
+> Catatan cetak di HP Android: tekan **Cetak Struk** → pilih printer atau **Simpan sebagai PDF**. Untuk printer thermal Bluetooth gunakan tombol **Bluetooth**.
+
+
+> **Riwayat: update ke v3.4** (hutang emas sesuai gram nota, kadar baru bisa disimpan/dihapus, tombol Install aplikasi, notifikasi di tengah layar HP):
+> 1. Apps Script: ganti seluruh isi **Kode.gs** saja → **Deploy → Manage deployments → ✏️ → New version → Deploy**. Tanpa setup ulang.
+> 2. Frontend: salin isi ZIP ke repo (**pertahankan `js/config.js`**). Ada berkas baru: `manifest.webmanifest`, `sw.js`, `img/icon-180.png`, `img/icon-192.png`, `img/icon-512.png` — pastikan ikut di-push.
+> 3. Install di HP Android (Chrome): buka situs → tombol **Install** di kanan atas (atau di halaman login) → **Install**. Setelah terpasang tombolnya hilang sendiri. iPhone: Safari → Bagikan → *Tambahkan ke Layar Utama*.
+> 4. Hutang emas yang dicatat di v3.3 (dengan konversi kadar) tidak berubah otomatis. Bila perlu, hapus lalu catat ulang sesuai gram di nota.
+
+
+> **Riwayat: update ke v3.3** (emas brankas, hutang emas toko, kartu karyawan di HP):
 > 1. Apps Script: ganti seluruh isi **Kode.gs** dan **Migrasi.gs** (Notifikasi.gs & appsscript.json tidak berubah).
 > 2. **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. URL `/exec` tetap. **Jangan** jalankan setup lagi — sheet baru `EmasBrankas` & `HutangEmas` serta kolom baru dibuat otomatis.
 > 3. Frontend: salin isi ZIP baru ke repo (**pertahankan `js/config.js` Anda**) → `git add .` → `git commit -m "v3.3"` → `git push`. Lalu muat ulang paksa di setiap HP/komputer.
@@ -9,7 +33,7 @@
 > **Cara pakai singkat**
 > - **Buyback / tukar tambah**: pilih *Barang disimpan ke* → Stok etalase, Brankas emas, atau Tidak dicatat; dan kondisinya (Baik/Rusak/Model kembar).
 > - **Brankas → tab Emas & Perak**: *Masukkan* (barang kembalian, saldo awal), *Tarik dari Etalase* (barang rusak/kembar), lalu *Keluarkan* ke: etalase (perbaikan/sepuh/custom, isi berat hasil & ongkos), lebur (jadi leburan di brankas), jual, atau setor supplier.
-> - **Hutang Emas**: *Ambil Barang* (contoh 10 gr kadar 875 = 8,75 gr murni). *Bayar* dengan uang (5 jt ÷ 2,2 jt = 2,273 gr murni) atau setor emas dari brankas/etalase/emas murni. Tombol **Isi untuk Lunas** menghitung otomatis.
+> - **Hutang Emas** (v3.4): *Ambil Barang* → isi berat sesuai nota (nota 10 gr = hutang 10 gr). *Bayar Uang* → isi uang disetor dan **nilai gram dari supplier** (contoh 2 jt = 2 gr → sisa 8 gr; gram terisi otomatis dari harga hari ini dan bisa diubah). *Setor Emas* → gram disetor langsung mengurangi hutang. Tombol **Isi untuk Lunas** mengisi sisa otomatis.
 > - Semua operasi bisa dibatalkan utuh (ikon tempat sampah); emas, stok, kas & bank ikut kembali.
 
 

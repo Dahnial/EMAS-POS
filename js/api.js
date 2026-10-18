@@ -94,6 +94,7 @@
       try {
         switch (fn) {
           case 'apiLogin':  return request('POST', { action: 'login', username: a[0], password: a[1], role: a[2], appUrl: a[3] || '' }, false, 'login');
+          case 'apiLoginGoogle': return request('POST', { action: 'loginGoogle', credential: a[0], appUrl: a[1] || '' }, false, 'loginGoogle');
           case 'apiLogout': return request('POST', { action: 'logout', token: a[0] }, true, 'logout');
           case 'apiPing':   return request('POST', { action: 'ping', token: a[0], ver: a[1] }, true, 'ping');
           case 'apiCall':   return request('POST', { action: 'call', token: a[0], op: a[1], data: a[2], cid: a[3] }, READ_OPS.test(a[1]), a[1]);

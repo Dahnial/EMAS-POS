@@ -2042,3 +2042,98 @@ code, .mono, .tm small { overflow-wrap: anywhere; }
   .he-harga .tm b{font-size:16px}
   .eb-item .tm small .tag{display:inline-block}
 }
+
+/* ============ v3.4 — toast di tengah (HP), PWA, daftar kadar ============ */
+#toast-root { right: auto; }
+.toast { line-height: 1.35; }
+.toast .t-ic { display: inline-flex; flex: 0 0 auto; font-style: normal; }
+.toast.out { opacity: 0; transform: scale(.96); transition: opacity .2s, transform .2s; }
+@keyframes toastPop { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+@media (max-width: 899px) {
+  #toast-root { top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%); width: min(300px, calc(100vw - 56px)); align-items: stretch; z-index: 300; }
+  .toast { flex-direction: column; justify-content: center; text-align: center; gap: 10px; padding: 20px 18px 18px; font-size: 15px; font-weight: 600;
+    border-radius: 20px; background: rgba(28, 24, 19, .95); box-shadow: 0 18px 50px -10px rgba(0,0,0,.55); animation: toastPop .18s ease-out; }
+  .toast .t-ic { width: 46px; height: 46px; border-radius: 50%; align-items: center; justify-content: center; background: rgba(255,255,255,.1); }
+  .toast .t-ic .ic { width: 26px; height: 26px; }
+  .toast.ok .t-ic { background: rgba(52, 211, 153, .18); }
+  .toast.err .t-ic { background: rgba(255,255,255,.18); }
+  .toast span { overflow-wrap: anywhere; }
+}
+.pwa-btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.pwa-btn.hidden { display: none !important; }
+.topbar-actions .pwa-btn { background: var(--gold); color: var(--ink); border: 0; min-height: 36px; padding: 0 12px; border-radius: 999px; }
+.pwa-ios ol { padding-left: 20px; margin: 10px 0 16px; display: grid; gap: 8px; }
+.pwa-ios p { margin: 0; color: var(--mut); }
+.hk-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.hk-head > div { min-width: 0; }
+.hk-head small { display: block; color: var(--mut); font-size: 12px; }
+.hk-head .btn { flex: 0 0 auto; }
+.hk-add { border: 1px dashed var(--gold); background: #fffbeb; border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+.hk-list { display: grid; gap: 10px; }
+.hk-item { border: 1px solid var(--ln); border-radius: 14px; padding: 10px 12px 2px; background: var(--sf, #fff); }
+.hk-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.hk-top .tm { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.hk-top .tm b { font-size: 16px; }
+.hk-top .tm small { color: var(--mut); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hk-item .fld { margin-bottom: 10px; }
+.hk-item .inp { font-weight: 700; }
+.hk-foot { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; position: sticky; bottom: -1px; background: var(--sf, #fff); padding: 10px 0 2px; }
+@media (max-width: 899px) {
+  .hk-foot .btn { flex: 1; justify-content: center; }
+  .topbar-actions .pwa-btn span { display: inline; }
+  .topbar-actions .pwa-btn { padding: 0 10px; font-size: 12.5px; min-height: 34px; }
+}
+.hk-item .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hk-item .inp { padding-left: 10px; padding-right: 8px; font-size: 14px; }
+.hk-item .fld .lb { font-size: 11.5px; }
+
+/* ============ v3.5 — cetak bersih, pratinjau nota pas layar, struk, WA, sedekah, login Gmail ============ */
+@media screen { #print-area, #print-nota-area { display: none !important; } }
+@media print {
+  body * { visibility: visible !important; }
+  body.cetak-struk > *:not(#print-area), body.cetak-nota > *:not(#print-nota-area) { display: none !important; }
+  body.cetak-struk #print-area { display: block !important; position: static !important; }
+  body.cetak-nota #print-nota-area { display: block !important; position: static !important; }
+  body.cetak-struk #print-nota-area, body.cetak-nota #print-area { display: none !important; }
+  body.cetak-struk, body.cetak-nota { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+  #print-nota-area .nota-toko-doc { width: 100% !important; max-width: 100% !important; }
+}
+.md.md-wide { width: min(1100px, 100%); }
+.nota-stage { background: #e9e5dc; border-radius: 14px; padding: 10px; margin-bottom: 12px; }
+.nota-fit { position: relative; overflow: hidden; width: 100%; }
+.nota-fit-in { width: 800px; transform-origin: top left; }
+.nota-fit-in .nota-toko-doc { max-width: 800px; width: 800px; }
+.pv-note { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mut); margin-bottom: 10px; }
+.pv-hint { display: block; margin-top: 8px; color: var(--mut); text-align: center; font-size: 12px; }
+.pv-act { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; }
+.pv-act .btn { justify-content: center; }
+.struk-act { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.struk-act .btn { flex-direction: column; gap: 4px; min-height: 64px; padding: 8px 4px; font-size: 12.5px; justify-content: center; text-align: center; line-height: 1.15; }
+.struk-act .btn .ic { width: 20px; height: 20px; }
+.wa-btn { background: #25d366 !important; color: #fff !important; border-color: #25d366 !important; }
+.cfg-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+.cfg-prev { position: sticky; top: 0; }
+.cfg-save { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; position: sticky; bottom: -1px; background: #fff; padding: 10px 0 2px; border-top: 1px solid var(--ln); z-index: 2; }
+.qs-chips { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: -4px 0 14px; }
+.qs-chips button { min-height: 38px; border-radius: 12px; border: 1px solid var(--ln); background: #fff; font-weight: 700; font-size: 13px; color: var(--ink); }
+.qs-chips button.on, .qs-chips button:active { background: var(--gold); border-color: var(--gold); }
+.lg-google { margin-top: 14px; text-align: center; }
+.lg-google #lg-gbtn { display: flex; justify-content: center; min-height: 44px; }
+.lg-google small { display: block; margin-top: 8px; color: var(--mut); font-size: 12px; }
+.lg-or { display: flex; align-items: center; gap: 10px; color: var(--mut); font-size: 12px; margin-bottom: 12px; }
+.lg-or::before, .lg-or::after { content: ''; flex: 1; height: 1px; background: var(--ln); }
+@keyframes ring { 0%,100% { transform: rotate(0); } 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(9deg); } 60% { transform: rotate(-6deg); } 75% { transform: rotate(3deg); } }
+.ibtn.ring .ic { animation: ring 0.8s ease-in-out 2; transform-origin: 50% 10%; }
+@media (max-width: 899px) {
+  .cfg-grid { grid-template-columns: 1fr; gap: 14px; }
+  .cfg-prev { order: -1; position: static; }
+  .cfg-save .btn { flex: 1; justify-content: center; }
+  .struk-act { grid-template-columns: 1fr 1fr; }
+  .struk-act .btn { flex-direction: row; min-height: 48px; gap: 8px; font-size: 13.5px; }
+  .pv-act { grid-template-columns: 1fr 1fr; }
+  .pv-act .btn.pri { grid-column: 1 / -1; order: -1; }
+  .qs-chips { grid-template-columns: repeat(3, 1fr); }
+  .nota-stage { padding: 6px; border-radius: 10px; }
+}
+.cfg-grid > * { min-width: 0; } .nota-stage { min-width: 0; overflow: hidden; }
+.qs-chips button { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 4px; }
