@@ -2137,3 +2137,14 @@ code, .mono, .tm small { overflow-wrap: anywhere; }
 }
 .cfg-grid > * { min-width: 0; } .nota-stage { min-width: 0; overflow: hidden; }
 .qs-chips button { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 4px; }
+
+/* ============ v3.6 — tambah kas laci, diagnosa login Google ============ */
+.tk-card.warn { border: 1px solid #fcd34d; background: linear-gradient(180deg, #fffbeb, #fff); }
+.tk-card .hd h3 { display: flex; align-items: center; gap: 6px; }
+.tk-qs { margin: 0 0 12px; }
+.gt-out:empty { display: none; }
+.gt-out { border: 1px solid var(--ln); border-radius: 12px; padding: 10px; margin-bottom: 12px; display: grid; gap: 8px; font-size: 13px; }
+.gt-row { display: flex; gap: 8px; align-items: flex-start; }
+.gt-row .tag { flex: 0 0 auto; }
+.gt-row span:last-child { overflow-wrap: anywhere; min-width: 0; }
+@media (max-width: 899px) { .tk-card .hd { flex-wrap: wrap; gap: 10px; } .tk-card .hd .btn { width: 100%; justify-content: center; } }

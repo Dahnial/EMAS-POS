@@ -4,5 +4,5 @@
 // Dapatkan dari: Apps Script → Deploy → New deployment → Web app
 // =====================================================
 window.APP_CONFIG = {
-  GAS_URL: 'https://script.google.com/macros/s/AKfycbwIn3hWfVE-Rhya5rPvYuJoFlZrLdgGyPdqwdVm9-fTfRCAn19HQXurucS1jjw2ohgr3Q/exec'
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbw03cO2w-kDl8NLNLGU5W-gYhj1-QNqf6qeef8vdZSkhg2cB4B9pRW11M-Sw7w0R6grLA/exec'
 };

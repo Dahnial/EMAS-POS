@@ -277,8 +277,14 @@ function gMulai(otomatis){
     }
     const el=$('#lg-gbtn');
     if(el&&!el.dataset.ok){google.accounts.id.renderButton(el,{theme:'outline',size:'large',shape:'pill',text:'continue_with',locale:'id',width:Math.min(360,el.clientWidth||320)});el.dataset.ok='1'}
-    if(otomatis&&LS.g('pos_g_off')!=='1')google.accounts.id.prompt();
+    if(otomatis&&LS.g('pos_g_off')!=='1')google.accounts.id.prompt(n=>{try{if(n&&n.isNotDisplayed&&n.isNotDisplayed()){const r=n.getNotDisplayedReason(),s=$('#lg-gstat');if(s)s.textContent=gAlasan(r)}}catch(e){}});
   }).catch(()=>{const s=$('#lg-gstat');if(s)s.textContent='Tidak dapat memuat login Google. Gunakan username & kata sandi.'});
+}
+function gAlasan(r){
+  return ({unregistered_origin:'Alamat '+location.origin+' belum didaftarkan di Authorized JavaScript origins (Google Cloud).',invalid_client:'Client ID tidak dikenal Google. Periksa Client ID di Pengaturan.',
+    missing_client_id:'Client ID belum diisi.',opt_out_or_no_session:'Belum ada Gmail yang masuk di browser ini. Tekan tombol Google atau login manual.',
+    suppressed_by_user:'Login otomatis sedang ditahan Google. Tekan tombol Google di bawah.',browser_not_supported:'Browser tidak mendukung login otomatis. Tekan tombol Google.',
+    secure_http_required:'Login Google wajib lewat https.'}[r])||('Login otomatis tidak tampil ('+r+'). Tekan tombol Google atau login manual.');
 }
 function gCallback(resp){
   if(!resp||!resp.credential||G_BUSY)return;
@@ -495,7 +501,14 @@ function modal(title,body,cls){
   $('#bd').addEventListener('mousedown',e=>{if(e.target.id==='bd')closeModal()});
   const f=$('.md input:not([type=hidden]),.md select',r);if(f&&window.innerWidth>900)setTimeout(()=>f.focus(),30);
 }
-function closeModal(){RC=null;$('#modal-root').innerHTML=''}
+/** Matikan semua kamera yang masih menyala (dipanggil saat jendela ditutup / aplikasi ke latar). */
+function matikanKamera(){
+  try{if(typeof AB!=='undefined'&&AB&&AB.stream){AB.stream.getTracks().forEach(t=>t.stop());AB.stream=null}}catch(e){}
+  $$('video').forEach(v=>{try{if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null}}catch(e){}});
+}
+function closeModal(){RC=null;matikanKamera();$('#modal-root').innerHTML=''}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)matikanKamera()});
+window.addEventListener('pagehide',matikanKamera);
 function field(f){
   const id='f_'+f.k,rq=f.req?' required':'';let inp;
   if(f.t==='select')inp='<select class="inp" name="'+f.k+'" id="'+id+'">'+f.o.map(o=>{const a=Array.isArray(o)?o:[o,o];return '<option value="'+esc(a[0])+'"'+(String(f.v)===String(a[0])?' selected':'')+'>'+esc(a[1])+'</option>'}).join('')+'</select>';
@@ -690,7 +703,8 @@ function apItem(a,act){
     EDIT_TRX:['warn','Edit Nota','edit'],
     HAPUS_TRX:['bad','Hapus Nota','trash'],
     PENGELUARAN_OPS_BESAR:['warn','Otorisasi Biaya','wallet'],
-    IZIN:['gold','Izin / Cuti','cal']
+    IZIN:['gold','Izin / Cuti','cal'],
+    TAMBAH_KAS:['gold','Tambah Kas Laci','wallet']
   }[a.jenis]||['','Pengajuan','file'];
 
   const stTag=a.status==='DISETUJUI'?'<span class="tag ok">Disetujui</span>':
@@ -876,6 +890,7 @@ P.kas=function(){
   const rows=sortD(S.kas);
   return '<div class="ph"><div><h1>Kas Laci &amp; Tutup Kas</h1><p>Saldo berjalan = saldo awal + kas masuk − kas keluar.</p></div>'+
     '<div class="chips"><button class="btn dk" data-a="tutup">'+ic('clock','s')+' Tutup Kas Harian</button><button class="btn gold" data-a="brk" data-v="SETOR">'+ic('lock','s')+' Setor ke Brankas</button><button class="btn pri" data-a="kas_setor_bank">'+ic('bank','s')+' Setor ke Bank</button></div></div>'+
+    tkKartu()+
     '<div class="grid g2" style="margin-bottom:20px">'+kpi('Saldo Kas Laci Sistem',rp(S.saldo.kas),'<span class="pill ok">Berjalan</span>','wallet','gold')+kpi('Tutup Kas Terakhir',S.tutup.length?rp(S.tutup[S.tutup.length-1].saldoFisik):'-',S.tutup.length?'<span class="pill '+(S.tutup[S.tutup.length-1].selisih===0?'ok':'warn')+'">Selisih '+rp(S.tutup[S.tutup.length-1].selisih)+'</span>':'<small>belum ada</small>','clock')+'</div>'+
     '<div class="grid dash2"><div class="card"><div class="hd"><h3>Mutasi Kas Laci</h3><small>'+rows.length+' mutasi</small></div>'+(rows.length?batas('kas',rows,15,m=>{
       const sTitle=m.sumber==='TUKAR_TAMBAH'?(m.arah==='MASUK'?'Tukar Tambah (Pemasukan)':'Tukar Tambah (Pengeluaran / Uang Kembali)'):String(m.sumber).replace(/_/g,' ');
@@ -883,6 +898,50 @@ P.kas=function(){
       return '<div class="tr"><span class="ico '+(m.arah==='MASUK'?'ok':'bad')+'">'+ic(m.arah==='MASUK'?'down':'up')+'</span><span class="tm"><b>'+esc(sTitle.charAt(0)+sTitle.slice(1).toLowerCase())+'</b><small class="meta">'+sub+'</small></span><span class="ta '+(m.arah==='KELUAR'?'neg':'')+'"><b>'+(m.arah==='KELUAR'?'-':'+')+rp(m.nominal)+'</b><small>saldo '+rpS(m.saldo)+'</small></span>'+(isO()?'<button class="ibtn del" data-a="kasdel" data-v="'+esc(m.mutasiKasId||m.waktu)+'" title="Hapus">'+ic('trash','s')+'</button>':'')+'</div>';
     }):empty('Belum ada mutasi.'))+'</div>'+
     '<div class="card"><div class="hd"><h3>Riwayat Tutup Kas</h3></div>'+(S.tutup.length?sortD(S.tutup.map(x=>Object.assign({},x))).slice(0,12).map(x=>'<div class="tr"><span class="ico '+(x.selisih===0?'ok':'gold')+'">'+ic(x.selisih===0?'check':'alert')+'</span><span class="tm"><b>'+tgl(x.tanggal)+'</b><small class="meta">Sistem '+rpS(x.saldoSistem)+' · Fisik '+rpS(x.saldoFisik)+'</small></span><span class="ta '+(x.selisih<0?'neg':'')+'"><b>'+(x.selisih>0?'+':'')+rp(x.selisih)+'</b></span>'+(isO()?'<button class="ibtn del" data-a="tutupdel" data-v="'+esc(x.tutupKasId||x.tanggal)+'" title="Hapus Riwayat Tutup Kas">'+ic('trash','s')+'</button>':'')+'</div>').join(''):empty('Belum ada.'))+'</div></div>';
+};
+
+/* ---------- Pengajuan tambah uang kas laci (kasir → Owner) ---------- */
+function tkList(){return sortD((S.approval||[]).filter(a=>a.jenis==='TAMBAH_KAS').map(a=>Object.assign({waktu:a.createdAt},a)))}
+function tkKartu(){
+  const L=tkList(),tunggu=L.filter(a=>a.status==='MENUNGGU'),o=isO(),rendah=S.saldo.kas<500000;
+  if(o){
+    if(!tunggu.length)return '';
+    return '<div class="card tk-card warn" style="margin-bottom:16px"><div class="hd"><div><h3>'+ic('wallet','s')+' Permintaan tambah kas laci</h3><small>'+tunggu.length+' menunggu keputusan Anda</small></div></div>'+
+      tunggu.map(a=>'<div class="tr"><span class="ico gold">'+ic('wallet')+'</span><span class="tm"><b>'+rp((a.data&&a.data.nominal)||0)+' · '+esc((uname(a.pengajuId)||'').split(' ')[0])+'</b><small class="meta">'+esc((a.data&&a.data.catatan)||'')+' · '+tgl(a.createdAt).replace(/ \d{4}$/,'')+' '+jam(a.createdAt)+'</small></span><button class="btn xs pri" data-a="apr" data-v="'+a.approvalId+'|SETUJU">Isi Kas</button></div>').join('')+'</div>';
+  }
+  return '<div class="card tk-card'+(rendah?' warn':'')+'" style="margin-bottom:16px"><div class="hd"><div><h3>'+ic('wallet','s')+' Uang kas laci '+(rendah?'hampir habis?':'')+'</h3><small>'+(rendah?'Saldo laci tinggal '+rp(S.saldo.kas)+'. ':'')+'Ajukan tambahan kas ke Owner (dari brankas atau ATM).</small></div><button class="btn sm pri" data-a="tkaju">'+ic('plus','s')+' Ajukan Tambah Kas</button></div>'+
+    (L.length?L.slice(0,4).map(a=>'<div class="tr"><span class="ico '+(a.status==='DISETUJUI'?'ok':a.status==='DITOLAK'?'bad':'gold')+'">'+ic('wallet')+'</span><span class="tm"><b>'+rp((a.data&&(a.data.disetujui||a.data.nominal))||0)+'</b><small class="meta">'+esc((a.data&&a.data.catatan)||'')+' · '+tgl(a.createdAt).replace(/ \d{4}$/,'')+' '+jam(a.createdAt)+'</small></span><span class="tag '+(a.status==='DISETUJUI'?'ok':a.status==='DITOLAK'?'bad':'warn')+'">'+(a.status==='MENUNGGU'?'Menunggu Owner':a.status==='DISETUJUI'?'Disetujui':'Ditolak')+'</span></div>').join(''):'')+'</div>';
+}
+A.tkaju=()=>{
+  openForm({title:'Ajukan Tambah Kas Laci',ok:'Kirim ke Owner',
+    pre:'<div class="mini" style="margin-bottom:12px"><small>Saldo kas laci sekarang</small><div class="big">'+rp(S.saldo.kas)+'</div></div>'+
+        '<div class="qs-chips tk-qs">'+[[200000,'200rb'],[500000,'500rb'],[1000000,'1 jt'],[2000000,'2 jt'],[3000000,'3 jt'],[5000000,'5 jt']].map(x=>'<button type="button" data-a="tkqs" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>',
+    fields:[{k:'nominal',l:'Nominal tambahan kas',t:'rp',req:1},
+      {k:'sumber',l:'Usulan sumber uang',t:'select',o:[['BEBAS','Terserah Owner'],['BRANKAS','Dari brankas'],['BANK','Tarik ATM / bank']]},
+      {k:'catatan',l:'Catatan untuk Owner',t:'ta',v:'Kas laci hampir habis, mohon diisi bos.'}],
+    fn:v=>{
+      if((S.approval||[]).some(a=>a.jenis==='TAMBAH_KAS'&&a.status==='MENUNGGU'&&a.pengajuId===S.me.userId&&a.data&&a.data.nominal===v.nominal))return 'Pengajuan dengan nominal yang sama masih menunggu Owner.';
+      mut('kasAjukanTambah',v,()=>{(S.approval=S.approval||[]).push({approvalId:'TMP-'+Date.now(),jenis:'TAMBAH_KAS',referensiId:'',pengajuId:S.me.userId,ringkasan:'Tambah kas laci '+rp(v.nominal),data:{nominal:v.nominal,sumber:v.sumber,catatan:v.catatan},status:'MENUNGGU',createdAt:nowWIT()})});
+    }});
+};
+A.tkqs=v=>{const n=$('#gform [name=nominal]');if(n){n.value='Rp. '+nf.format(+v);$$('.tk-qs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))}};
+/** Owner menyetujui: pilih sumber uang (brankas / rekening ATM) dan nominal final. */
+F.tkSetuju=function(a){
+  const d=a.data||{},rek=S.setting.rekening||[];
+  const o=[['BRANKAS','Brankas · saldo '+rpS(S.saldo.brankas)]].concat(rek.map(r=>['BANK|'+r.nama,'ATM/Bank '+r.nama+' · saldo '+rpS((S.saldo.bank||{})[r.nama]||0)]));
+  const pilih=d.sumber==='BANK'&&rek.length?'BANK|'+rek[0].nama:'BRANKAS';
+  openForm({title:'Isi Kas Laci',ok:'Setujui & Isi Kas',
+    pre:'<div class="mini" style="margin-bottom:12px"><small>'+esc(uname(a.pengajuId))+' · '+esc(d.catatan||'')+'</small><div class="big">'+rp(d.nominal||0)+'</div><small>Saldo laci sekarang '+rp(S.saldo.kas)+'</small></div>',
+    fields:[{k:'nominal',l:'Nominal yang diisi',t:'rp',req:1,v:d.nominal},{k:'src',l:'Ambil uang dari',t:'select',o:o,v:pilih}],
+    fn:v=>{
+      const bank=/^BANK\|/.test(v.src),rk=bank?v.src.slice(5):'';
+      if(!bank&&v.nominal>S.saldo.brankas)return 'Saldo brankas tidak cukup ('+rp(S.saldo.brankas)+').';
+      mut('approvalProses',{approvalId:a.approvalId,keputusan:'SETUJU',nominal:v.nominal,sumber:bank?'BANK':'BRANKAS',rekening:rk},()=>{
+        a.status='DISETUJUI';a.data=Object.assign({},d,{disetujui:v.nominal});
+        pushKas('MASUK',v.nominal,bank?'TARIK_BANK':'TARIK_BRANKAS','','Tambah kas laci ('+uname(a.pengajuId)+')');
+        if(bank)S.saldo.bank[rk]=(S.saldo.bank[rk]||0)-v.nominal;else S.saldo.brankas-=v.nominal;
+      });
+    }});
 };
 F.tutup=function(){
   openForm({title:'Tutup Kas Harian',ok:'Simpan Tutup Kas',
@@ -1346,6 +1405,9 @@ function startAbsenCam(){
   }
   navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:800}}})
     .then(st=>{
+      const v2=$('#ab-video');
+      if(!v2||!document.body.contains(v2)||AB.foto){st.getTracks().forEach(t=>t.stop());return}   // jendela sudah ditutup / foto sudah diambil
+      if(AB.stream){try{AB.stream.getTracks().forEach(t=>t.stop())}catch(e){}}
       AB.stream=st;
       if(video){
         video.srcObject=st;
@@ -1361,6 +1423,7 @@ function stopAbsenCam(){
     try{AB.stream.getTracks().forEach(t=>t.stop())}catch(e){}
     AB.stream=null;
   }
+  const v=$('#ab-video');if(v&&v.srcObject){try{v.srcObject.getTracks().forEach(t=>t.stop())}catch(e){}v.srcObject=null}
 }
 F.absen=function(){
   AB={foto:null,ok:false,stream:null};
@@ -1514,10 +1577,11 @@ A.pjb=v=>{const r=S.pinjaman.find(x=>x.pinjamanId===v);if(!r)return;
 /* ============ PERSETUJUAN ============ */
 P.approval=function(){
   const pd=pending(),done=sortD(S.approval.filter(a=>a.status!=='MENUNGGU').map(a=>Object.assign({waktu:a.createdAt},a))).slice(0,15);
-  return '<div class="ph"><div><h1>Pusat Persetujuan</h1><p>Pembatalan, edit & hapus nota oleh karyawan, pengeluaran ≥ '+rp(S.setting.limitApproval)+', dan izin karyawan.</p></div><button class="btn pri" data-a="tugas">'+ic('msg','s')+' Kirim Tugas / Pesan</button></div><div class="grid g2"><div class="card"><div class="hd"><h3>Menunggu Keputusan '+(pd.length?'<span class="pill bad">'+pd.length+'</span>':'')+'</h3></div>'+(pd.length?pd.map(a=>apItem(a,1)).join(''):empty('Semua pengajuan sudah diproses.'))+'</div><div class="card"><div class="hd"><h3>Riwayat Keputusan</h3></div>'+(done.length?done.map(a=>apItem(a,0)).join(''):empty('Belum ada.'))+'</div></div>';
+  return '<div class="ph"><div><h1>Pusat Persetujuan</h1><p>Pembatalan, edit & hapus nota, pengeluaran ≥ '+rp(S.setting.limitApproval)+', izin, dan permintaan tambah kas laci.</p></div><button class="btn pri" data-a="tugas">'+ic('msg','s')+' Kirim Tugas / Pesan</button></div><div class="grid g2"><div class="card"><div class="hd"><h3>Menunggu Keputusan '+(pd.length?'<span class="pill bad">'+pd.length+'</span>':'')+'</h3></div>'+(pd.length?pd.map(a=>apItem(a,1)).join(''):empty('Semua pengajuan sudah diproses.'))+'</div><div class="card"><div class="hd"><h3>Riwayat Keputusan</h3></div>'+(done.length?done.map(a=>apItem(a,0)).join(''):empty('Belum ada.'))+'</div></div>';
 };
 A.apr=v=>{
   const p=v.split('|'),a=S.approval.find(x=>x.approvalId===p[0]);if(!a||a.status!=='MENUNGGU')return;const ok=p[1]==='SETUJU',t=S.trx.find(x=>x.transaksiId===a.referensiId);
+  if(a.jenis==='TAMBAH_KAS'&&ok)return F.tkSetuju(a);
   if(ok&&t&&a.jenis==='PENGELUARAN_OPS_BESAR'&&t.metodeBayar==='TUNAI'&&!kasOK(t.nominal)){toast('Saldo kas laci tidak cukup untuk menyetujui','err');return}
   if(ok&&t&&a.jenis==='PEMBATALAN_TRX'&&isJual(t)&&t.metodeBayar==='TUNAI'&&!kasOK(t.nominal)){toast('Saldo kas laci tidak cukup untuk membatalkan','err');return}
   mut('approvalProses',{approvalId:a.approvalId,keputusan:p[1]},()=>{
@@ -3825,14 +3889,39 @@ P.pengaturan=function(){
     '<div class="card"><div class="hd"><h3>Keamanan</h3></div><button class="btn blk" data-a="pass">'+ic('key','s')+' Ubah Kata Sandi Saya</button><small style="display:block;margin-top:10px">Reset password Super Admin &amp; reset data dummy dilakukan dari backend (editor Apps Script): <b>resetPasswordSuperAdmin()</b> dan <b>resetDataDummy()</b>.</small></div></div></div>'+
     '<div class="card" style="margin-top:20px"><div class="hd"><div><h3>Kelola Karyawan &amp; Hak Akses</h3><small>Foto profil, status, dan PIN login</small></div><button class="btn sm pri" data-a="useradd">'+ic('plus','s')+' Tambah</button></div>'+'<div class="emp-list">'+us.map(u=>'<div class="emp-card"><div class="emp-top">'+uAvatar(u,'sm')+'<span class="tm"><b>'+esc(u.nama)+'</b><small>@'+esc(u.username)+'</small></span><span class="emp-tags"><span class="tag '+(u.role==='OWNER'?'gold':'')+'">'+(u.role==='OWNER'?'Owner':'Kasir')+'</span><span class="tag '+(u.status==='AKTIF'?'ok':'bad')+'">'+(u.status==='AKTIF'?'Aktif':'Nonaktif')+'</span></span></div>'+'<div class="emp-act"><button class="btn sm gh" data-a="myphoto" data-v="'+u.userId+'">'+ic('camera','s')+' Foto</button>'+(u.role==='OWNER'?'<button class="btn sm gh" data-a="pass">'+ic('key','s')+' Kata Sandi</button>':'<button class="btn sm" data-a="useredit" data-v="'+u.userId+'">'+ic('edit','s')+' Ubah</button><button class="btn sm" data-a="userpin" data-v="'+u.userId+'">'+ic('key','s')+' Reset PIN</button>')+'</div></div>').join('')+'</div></div>';
 };
+A.gtest=()=>{
+  const box=$('#gtest-out');if(!box)return;
+  const row=(ok,t)=>'<div class="gt-row"><span class="tag '+(ok===true?'ok':ok===false?'bad':'warn')+'">'+(ok===true?'OK':ok===false?'Gagal':'…')+'</span><span>'+t+'</span></div>';
+  const cid=(S.setting.googleClientId||'').trim(),em=(S.setting.emailAdminGoogle||'').trim(),out=[];
+  out.push(row(/\.apps\.googleusercontent\.com$/.test(cid),'Client ID: <b class="mono">'+esc(cid||'(kosong)')+'</b>'));
+  out.push(row(!!em,'Gmail admin: <b>'+esc(em||'(kosong — wajib diisi)')+'</b>'));
+  out.push(row(null,'Alamat yang wajib didaftarkan di Google Cloud → Credentials → OAuth client → <i>Authorized JavaScript origins</i>: <b class="mono">'+esc(location.origin)+'</b> (tanpa /EMAS-POS dan tanpa garis miring di akhir)'));
+  box.innerHTML=out.join('')+row(null,'Memeriksa server…');
+  Promise.all([window.API.public().catch(()=>null),call('apiLoginGoogle',['TES-DIAGNOSA','']).catch(e=>({success:false,message:e.message}))]).then(([pub,lg])=>{
+    const pg=pub&&pub.success?pub.data.gci:'';
+    out.push(row(!!pg&&pg===cid,pg?(pg===cid?'Server mengirim Client ID ke halaman login.':'Server mengirim Client ID berbeda: '+esc(pg)):'Server belum mengirim Client ID (Gmail admin kosong atau Kode.gs belum di-deploy versi baru).'));
+    const lama=lg&&/tidak dikenal/i.test(lg.message||'');
+    out.push(row(!lama,lama?'Backend masih versi lama. Deploy ulang Kode.gs: Deploy → Manage deployments → ✏️ → New version.':'Backend mendukung login Google ('+esc(lg&&lg.message||'')+').'));
+    box.innerHTML=out.join('')+'<div class="gt-row"><span class="tag">Uji</span><span>Tekan tombol Google di bawah dengan Gmail admin:</span></div><div id="gtest-btn" style="display:flex;justify-content:center;margin-top:8px;min-height:44px"></div><div id="gtest-res"></div>';
+    muatGIS().then(()=>{
+      google.accounts.id.initialize({client_id:cid,callback:resp=>{
+        const res=$('#gtest-res');if(res)res.innerHTML=row(null,'Memverifikasi ke server…');
+        call('apiLoginGoogle',[resp.credential,'']).then(r=>{const x=$('#gtest-res');if(x)x.innerHTML=row(!!r.success,r.success?'Berhasil! Login Gmail admin siap dipakai di halaman login.':esc(r.message))});
+      },auto_select:false});
+      GIS_INIT=false;
+      google.accounts.id.renderButton($('#gtest-btn'),{theme:'filled_blue',size:'large',shape:'pill',text:'signin_with',locale:'id'});
+    }).catch(()=>{const x=$('#gtest-res');if(x)x.innerHTML=row(false,'Skrip Google tidak bisa dimuat (internet / pemblokir iklan).')});
+  });
+};
 A.gset=()=>openForm({title:'Login Gmail Admin',ok:'Simpan',
-  pre:'<div class="info-box" style="margin-bottom:12px"><small><b>Cara membuat Client ID:</b> console.cloud.google.com → APIs &amp; Services → Credentials → Create credentials → OAuth client ID → <i>Web application</i>. Di <i>Authorized JavaScript origins</i> isi alamat aplikasi, mis. <b>'+esc(location.origin)+'</b>. Salin Client ID ke bawah. Panduan lengkap ada di PANDUAN-INSTALASI.</small></div>',
+  pre:'<button type="button" class="btn blk" data-a="gtest" style="margin-bottom:10px">'+ic('shield','s')+' Tes Login Google</button><div id="gtest-out" class="gt-out"></div><div class="info-box" style="margin-bottom:12px"><small><b>Cara membuat Client ID:</b> console.cloud.google.com → APIs &amp; Services → Credentials → Create credentials → OAuth client ID → <i>Web application</i>. Di <i>Authorized JavaScript origins</i> isi alamat aplikasi, mis. <b>'+esc(location.origin)+'</b>. Salin Client ID ke bawah. Panduan lengkap ada di PANDUAN-INSTALASI.</small></div>',
   fields:[{k:'emailAdminGoogle',l:'Gmail admin (boleh lebih dari satu, pisahkan koma)',v:S.setting.emailAdminGoogle||'',ph:'nama@gmail.com'},
     {k:'googleClientId',l:'OAuth Client ID',v:S.setting.googleClientId||'',ph:'xxxx.apps.googleusercontent.com',h:'Kosongkan Gmail admin untuk mematikan login Gmail.'}],
   fn:v=>{
     if(v.googleClientId&&!/\.apps\.googleusercontent\.com$/.test(v.googleClientId))return 'Client ID harus berakhiran .apps.googleusercontent.com';
     if(v.emailAdminGoogle&&!v.emailAdminGoogle.split(/[,;\s]+/).filter(Boolean).every(e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)))return 'Format Gmail tidak valid.';
-    mut('settingSimpan',{googleClientId:v.googleClientId,emailAdminGoogle:v.emailAdminGoogle},()=>{S.setting.googleClientId=v.googleClientId;S.setting.emailAdminGoogle=v.emailAdminGoogle});
+    if(v.googleClientId&&!v.emailAdminGoogle)return 'Isi juga Gmail admin — tanpa Gmail admin, tombol Google tidak muncul di halaman login.';
+    mut('settingSimpan',{googleClientId:v.googleClientId,emailAdminGoogle:v.emailAdminGoogle},()=>{S.setting.googleClientId=v.googleClientId;S.setting.emailAdminGoogle=v.emailAdminGoogle});GIS_INIT=false;
   }});
 A.profil=()=>F.profil();A.rekedit=()=>F.rekening();A.pass=()=>F.pass();A.useradd=()=>F.user();A.useredit=v=>F.user(v);A.userpin=v=>F.pin(v);
 A.logochoose=()=>{const i=$('#logo-file-input');if(i){i.value='';i.click()}};
@@ -4548,7 +4637,7 @@ function ntKonfig(){
    '</div>'+
    '<div class="card"><div class="hd"><h3>Email</h3><span class="pill">Sisa kuota hari ini: '+c.emailKuota+'</span></div>'+
     sw('nc-email',c.emailAktif,'Notifikasi Email '+(c.emailAktif?'AKTIF':'NONAKTIF'))+
-    '<label class="fld" style="margin-top:12px"><span class="lb">Email Owner</span><input class="inp" id="nc-email-owner" type="email" value="'+esc(c.ownerEmail)+'"></label>'+
+    '<label class="fld" style="margin-top:12px"><span class="lb">Email Owner</span><input class="inp" id="nc-email-owner" type="email" value="'+esc(c.ownerEmail)+'" placeholder="'+esc(c.emailTujuan||'nama@gmail.com')+'"><small>'+(c.emailTujuan?'Notifikasi dikirim ke: <b>'+esc(c.emailTujuan)+'</b>':'Isi email agar notifikasi terkirim.')+'</small></label>'+
     '<label class="fld"><span class="lb">Nama pengirim</span><input class="inp" id="nc-nama" value="'+esc(c.namaPengirim)+'"></label>'+
     '<label class="fld"><span class="lb">URL aplikasi (untuk {link})</span><input class="inp" id="nc-url" value="'+esc(c.appUrl||location.href.split('#')[0])+'"></label>'+
     '<div class="chips"><button class="btn sm" data-a="ncemtest">'+ic('send','s')+' Kirim Tes Email</button><span class="pill '+(c.trigger?'ok':'bad')+'">Pekerja latar '+(c.trigger?'aktif':'belum aktif')+'</span></div>'+

@@ -1,6 +1,20 @@
-# Panduan Instalasi — Putri Bali POS v3.5
+# Panduan Instalasi — Putri Bali POS v3.6
 
-> **Update ke v3.5** (cetak struk/nota bersih, pratinjau nota pas layar, WhatsApp rapi, sedekah nominal cepat, struk pemasukan, bunyi notifikasi, login Gmail admin):
+> **Update ke v3.6** (email notifikasi Owner, tambah kas laci, kamera absensi, login Gmail):
+> 1. Apps Script: ganti seluruh isi **Kode.gs** dan **Notifikasi.gs** → **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. Tanpa setup ulang.
+> 2. Frontend: salin isi ZIP ke repo (**pertahankan `js/config.js`**) → push → tutup–buka aplikasi di semua HP/PC.
+> 3. **Login sekali sebagai Owner** setelah update: email notifikasi Owner otomatis diaktifkan dan pekerja latar pengirim email dipasang.
+>
+> **Email notifikasi Owner** dikirim ke (urutan): email di *Notifikasi → Konfigurasi → Email Owner* → email akun Owner → Gmail admin → akun Google pemilik Apps Script. Email dikirim oleh pekerja latar setiap ±1 menit, untuk kejadian: pengajuan batal/edit/hapus nota, pengeluaran besar, izin, **permintaan tambah kas**, selisih tutup kas, dan ringkasan harian pukul 21.00. Uji dengan tombol **Kirim Tes Email**. Cek juga folder Spam.
+>
+> **Login Gmail admin — bila gagal, periksa 4 hal ini (Pengaturan → Login Gmail Admin → Tes Login Google):**
+> 1. Kolom **Gmail admin** wajib diisi (tanpa ini tombol Google tidak muncul).
+> 2. Google Cloud → APIs & Services → Credentials → klik OAuth client Anda → **Authorized JavaScript origins** berisi persis `https://dahnial.github.io` (tanpa `/EMAS-POS`, tanpa `/` di akhir). Bukan di *Authorized redirect URIs*. Simpan, tunggu 5–10 menit.
+> 3. **OAuth consent screen**: status *In production* (tekan **Publish app**), atau Gmail admin dimasukkan ke *Test users*.
+> 4. Kode.gs sudah di-deploy **New version** (bukan hanya disimpan).
+
+
+> **Riwayat: update ke v3.5** (cetak struk/nota bersih, pratinjau nota pas layar, WhatsApp rapi, sedekah nominal cepat, struk pemasukan, bunyi notifikasi, login Gmail admin):
 > 1. Apps Script: ganti seluruh isi **Kode.gs** → **Deploy → Manage deployments → ✏️ → New version → Deploy**. Tanpa setup ulang.
 > 2. Frontend: salin isi ZIP ke repo (**pertahankan `js/config.js`**) → push. Muat ulang paksa di HP/PC (tutup–buka aplikasi).
 >
