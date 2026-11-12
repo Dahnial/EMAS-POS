@@ -83,6 +83,7 @@ const hari=s=>HR[new Date(s+'T00:00:00Z').getUTCDay()];
 const jenisLbl={PENJUALAN:'Penjualan',BUYBACK:'Buyback',TUKAR_TAMBAH:'Tukar Tambah',JASA:'Pemasukan',PENGELUARAN_OPS:'Pengeluaran',SEDEKAH:'Sedekah'};
 
 /* ============ STATE ============ */
+let P_migrasiDb=null;
 let S=null,TOKEN=null,CUR='dashboard',Q=[],busy=false,pend=null,needResync=false,RJ='',DR=7,RC=null,TF={},AB={};
 const FILT={q:'',j:'ALL'}, A={}, F={}, SUB={}, IN={}, P={};
 const isO=()=>S.me.role==='OWNER';
@@ -252,10 +253,17 @@ SUB['lg-form']=()=>{
     masukOK(r);
   }).catch(e=>{b.disabled=false;b.firstChild.textContent='Masuk ke Sistem ';er.textContent=(e&&e.fatal)?e.message:'Gagal terhubung ke server. Periksa internet lalu coba lagi.';er.classList.remove('hidden')});
 };
+/** Halaman pertama: /ArsipTransaksi (atau #arsip) langsung membuka Arsip Transaksi Lama. */
+function halAwal(){
+  const h=(location.hash||'').replace(/^#\/?/,'').toLowerCase();
+  if(h==='arsip'||h==='arsiptransaksi'){MT='arsip';AR.bid='';return 'migrasi'}
+  return 'dashboard';
+}
+window.addEventListener('hashchange',()=>{if(S&&TOKEN&&/^#\/?arsip/i.test(location.hash)){MT='arsip';go('migrasi')}});
 function masukOK(r){
   TOKEN=r.data.token;LS.s('pos_tk',TOKEN);
   try{Q=JSON.parse(LS.g('pos_q')||'[]').filter(x=>x.u===r.data.state.me.userId)}catch(e){Q=[]}
-  adopt(r.data.state);RJ='';showApp();hydrateIcons();chrome();go('dashboard');startPolling();pump();
+  adopt(r.data.state);RJ='';showApp();hydrateIcons();chrome();go(halAwal());startPolling();pump();
 }
 /* Login Owner otomatis dengan Gmail admin (Google Identity Services). Login manual tetap tersedia. */
 let GIS_INIT=false,G_BUSY=false;
@@ -312,7 +320,7 @@ const MENU=[
 ['absensi','Absensi & Izin','Absen','pin','B'],['piutang','Piutang, Hutang & Pinjaman','Piutang','file','O'],['hutangemas','Hutang Emas Toko (Supplier)','Hutang Emas','scale','O'],
 ['approval','Pusat Persetujuan','Persetujuan','shield','O'],['laporan','Laporan & Rekap','Laporan','chart','O'],
 ['notif','WhatsApp & Notifikasi','Notifikasi','send','O'],['crm','CRM Pelanggan','CRM','users','O'],
-['migrasi','Migrasi Data','Migrasi','swap','O'],['pengaturan','Pengaturan Toko','Pengaturan','sliders','O'],
+['migrasi','Migrasi Data & Arsip Transaksi','Arsip & Migrasi','history','B'],['pengaturan','Pengaturan Toko','Pengaturan','sliders','O'],
 ['backend','Backend GAS & Basis Data','Backend & DB','database','O']];
 const allowed=()=>MENU.filter(m=>m[4]==='B'||(m[4]==='O')===isO());
 const BN={O:['dashboard','kasir','stok','absensi','menu'],K:['dashboard','kasir','kas','absensi','menu']};
@@ -704,7 +712,9 @@ function apItem(a,act){
     HAPUS_TRX:['bad','Hapus Nota','trash'],
     PENGELUARAN_OPS_BESAR:['warn','Otorisasi Biaya','wallet'],
     IZIN:['gold','Izin / Cuti','cal'],
-    TAMBAH_KAS:['gold','Tambah Kas Laci','wallet']
+    TAMBAH_KAS:['gold','Tambah Kas Laci','wallet'],
+    ARSIP_BATCH:['','Arsip Transaksi Lama','history'],
+    KOREKSI_ARSIP:['warn','Koreksi Arsip','edit']
   }[a.jenis]||['','Pengajuan','file'];
 
   const stTag=a.status==='DISETUJUI'?'<span class="tag ok">Disetujui</span>':
@@ -893,7 +903,7 @@ P.kas=function(){
     tkKartu()+
     '<div class="grid g2" style="margin-bottom:20px">'+kpi('Saldo Kas Laci Sistem',rp(S.saldo.kas),'<span class="pill ok">Berjalan</span>','wallet','gold')+kpi('Tutup Kas Terakhir',S.tutup.length?rp(S.tutup[S.tutup.length-1].saldoFisik):'-',S.tutup.length?'<span class="pill '+(S.tutup[S.tutup.length-1].selisih===0?'ok':'warn')+'">Selisih '+rp(S.tutup[S.tutup.length-1].selisih)+'</span>':'<small>belum ada</small>','clock')+'</div>'+
     '<div class="grid dash2"><div class="card"><div class="hd"><h3>Mutasi Kas Laci</h3><small>'+rows.length+' mutasi</small></div>'+(rows.length?batas('kas',rows,15,m=>{
-      const sTitle=m.sumber==='TUKAR_TAMBAH'?(m.arah==='MASUK'?'Tukar Tambah (Pemasukan)':'Tukar Tambah (Pengeluaran / Uang Kembali)'):String(m.sumber).replace(/_/g,' ');
+      const sTitle=m.sumber==='SELISIH_TUTUP_KAS'?'Selisih Tutup Kas':m.sumber==='TUKAR_TAMBAH'?(m.arah==='MASUK'?'Tukar Tambah (Pemasukan)':'Tukar Tambah (Pengeluaran / Uang Kembali)'):String(m.sumber).replace(/_/g,' ');
       const sub=[tgl(m.waktu).replace(/ \d{4}$/,'')+' '+jam(m.waktu),(uname(m.operatorId)||'').split(' ')[0],m.keterangan||''].filter(Boolean).map(esc).join(' · ');
       return '<div class="tr"><span class="ico '+(m.arah==='MASUK'?'ok':'bad')+'">'+ic(m.arah==='MASUK'?'down':'up')+'</span><span class="tm"><b>'+esc(sTitle.charAt(0)+sTitle.slice(1).toLowerCase())+'</b><small class="meta">'+sub+'</small></span><span class="ta '+(m.arah==='KELUAR'?'neg':'')+'"><b>'+(m.arah==='KELUAR'?'-':'+')+rp(m.nominal)+'</b><small>saldo '+rpS(m.saldo)+'</small></span>'+(isO()?'<button class="ibtn del" data-a="kasdel" data-v="'+esc(m.mutasiKasId||m.waktu)+'" title="Hapus">'+ic('trash','s')+'</button>':'')+'</div>';
     }):empty('Belum ada mutasi.'))+'</div>'+
@@ -943,15 +953,36 @@ F.tkSetuju=function(a){
       });
     }});
 };
-F.tutup=function(){
-  openForm({title:'Tutup Kas Harian',ok:'Simpan Tutup Kas',
+F.tutup=function(nilai,cat){
+  openForm({title:'Tutup Kas Harian',ok:'Periksa & Simpan',
     pre:'<div class="mini" style="margin-bottom:14px"><small>Saldo menurut sistem</small><div class="big">'+rp(S.saldo.kas)+'</div></div>'+
         '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"><button type="button" class="btn sm gold" data-a="brk" data-v="SETOR">'+ic('lock','s')+' Setor ke Brankas</button><button type="button" class="btn sm pri" data-a="kas_setor_bank">'+ic('bank','s')+' Setor ke Bank</button></div>',
-    fields:[{k:'saldoFisik',l:'Saldo uang fisik di laci',t:'rp',req:1,h:'Hitung seluruh uang tunai di laci. Selisih dicatat otomatis.'},{k:'catatan',l:'Catatan selisih (opsional)',t:'ta'}],
-    fn:v=>{const sis=S.saldo.kas,sel=v.saldoFisik-sis;
-      mut('kasTutup',v,()=>{S.tutup.push({tutupKasId:'TMP',tanggal:today(),saldoSistem:sis,saldoFisik:v.saldoFisik,selisih:sel,catatan:v.catatan,operatorId:S.me.userId,waktu:nowWIT()})});
-      toast(sel===0?'Tutup kas klop 100%':'Tutup kas dicatat. Selisih '+rp(sel),sel===0?'ok':'')}});
+    fields:[{k:'saldoFisik',l:'Saldo uang fisik di laci',t:'rp',req:1,v:nilai||'',h:'Hitung seluruh uang tunai di laci.'},{k:'catatan',l:'Catatan (opsional)',t:'ta',v:cat||''}],
+    fn:v=>{const sel=v.saldoFisik-S.saldo.kas;
+      if(sel!==0){F.tutupSelisih(v);return false}
+      simpanTutup(v,0);
+    }});
 };
+/** Selisih: minta hitung ulang dulu. Bila memang benar, saldo laci berikutnya mengikuti uang fisik. */
+F.tutupSelisih=function(v){
+  const sis=S.saldo.kas,sel=v.saldoFisik-sis,kurang=sel<0;
+  modal('Ada Selisih Kas',
+    '<div class="sel-box '+(kurang?'kurang':'lebih')+'"><div class="sel-ic">'+ic('alert')+'</div><div><small>Uang fisik '+(kurang?'KURANG':'LEBIH')+' dari catatan sistem</small><div class="sel-big">'+(kurang?'-':'+')+rp(Math.abs(sel))+'</div></div></div>'+
+    '<div class="sel-grid"><div class="mini"><small>Tercatat di sistem</small><b>'+rp(sis)+'</b></div><div class="mini"><small>Uang fisik di laci</small><b>'+rp(v.saldoFisik)+'</b></div></div>'+
+    '<div class="info-box" style="margin:12px 0"><small><b>Hitung ulang uang di laci sekali lagi.</b> Bila setelah dicek jumlahnya memang '+rp(v.saldoFisik)+', tekan <b>Sudah Dicek, Simpan</b>: selisih '+(kurang?'-':'+')+rp(Math.abs(sel))+' dicatat dan saldo kas laci berikutnya menjadi <b>'+rp(v.saldoFisik)+'</b>.</small></div>'+
+    '<label class="fld"><span class="lb">Keterangan selisih</span><textarea class="inp" id="sel-cat" rows="2" placeholder="mis. salah kembalian, uang receh belum dihitung">'+esc(v.catatan||'')+'</textarea></label>'+
+    '<div class="sel-act"><button class="btn" data-a="tutupulang">'+ic('refresh','s')+' Hitung Ulang</button><button class="btn pri" data-a="tutupok">'+ic('check','s')+' Sudah Dicek, Simpan</button></div>');
+  A.tutupulang=()=>{const c=($('#sel-cat')||{}).value;F.tutup(v.saldoFisik,c)};
+  A.tutupok=()=>{v.catatan=(($('#sel-cat')||{}).value||'').trim();closeModal();simpanTutup(v,sel)};
+};
+function simpanTutup(v,sel){
+  const sis=S.saldo.kas;
+  mut('kasTutup',{saldoFisik:v.saldoFisik,catatan:v.catatan,konfirmSelisih:sel!==0},()=>{
+    S.tutup.push({tutupKasId:'TMP',tanggal:today(),saldoSistem:sis,saldoFisik:v.saldoFisik,selisih:sel,catatan:(sel?'Selisih '+(sel>0?'+':'-')+rp(Math.abs(sel))+(v.catatan?' · ':''):'')+(v.catatan||''),operatorId:S.me.userId,waktu:nowWIT()});
+    if(sel)pushKas(sel>0?'MASUK':'KELUAR',Math.abs(sel),'SELISIH_TUTUP_KAS','','Penyesuaian selisih tutup kas');
+  });
+  toast(sel===0?'Tutup kas klop 100%':'Tutup kas dicatat. Selisih '+(sel>0?'+':'-')+rp(Math.abs(sel))+' · saldo laci kini '+rp(v.saldoFisik),sel===0?'ok':'');
+}
 A.kas_setor_bank=()=>F.bank('SETOR');
 
 /* ============ BRANKAS & BANK (Owner) ============ */
@@ -1577,13 +1608,14 @@ A.pjb=v=>{const r=S.pinjaman.find(x=>x.pinjamanId===v);if(!r)return;
 /* ============ PERSETUJUAN ============ */
 P.approval=function(){
   const pd=pending(),done=sortD(S.approval.filter(a=>a.status!=='MENUNGGU').map(a=>Object.assign({waktu:a.createdAt},a))).slice(0,15);
-  return '<div class="ph"><div><h1>Pusat Persetujuan</h1><p>Pembatalan, edit & hapus nota, pengeluaran ≥ '+rp(S.setting.limitApproval)+', izin, dan permintaan tambah kas laci.</p></div><button class="btn pri" data-a="tugas">'+ic('msg','s')+' Kirim Tugas / Pesan</button></div><div class="grid g2"><div class="card"><div class="hd"><h3>Menunggu Keputusan '+(pd.length?'<span class="pill bad">'+pd.length+'</span>':'')+'</h3></div>'+(pd.length?pd.map(a=>apItem(a,1)).join(''):empty('Semua pengajuan sudah diproses.'))+'</div><div class="card"><div class="hd"><h3>Riwayat Keputusan</h3></div>'+(done.length?done.map(a=>apItem(a,0)).join(''):empty('Belum ada.'))+'</div></div>';
+  return '<div class="ph"><div><h1>Pusat Persetujuan</h1><p>Pembatalan, edit & hapus nota, pengeluaran ≥ '+rp(S.setting.limitApproval)+', izin, tambah kas laci, dan arsip transaksi lama.</p></div><button class="btn pri" data-a="tugas">'+ic('msg','s')+' Kirim Tugas / Pesan</button></div><div class="grid g2"><div class="card"><div class="hd"><h3>Menunggu Keputusan '+(pd.length?'<span class="pill bad">'+pd.length+'</span>':'')+'</h3></div>'+(pd.length?pd.map(a=>apItem(a,1)).join(''):empty('Semua pengajuan sudah diproses.'))+'</div><div class="card"><div class="hd"><h3>Riwayat Keputusan</h3></div>'+(done.length?done.map(a=>apItem(a,0)).join(''):empty('Belum ada.'))+'</div></div>';
 };
 A.apr=v=>{
   const p=v.split('|'),a=S.approval.find(x=>x.approvalId===p[0]);if(!a||a.status!=='MENUNGGU')return;const ok=p[1]==='SETUJU',t=S.trx.find(x=>x.transaksiId===a.referensiId);
   if(a.jenis==='TAMBAH_KAS'&&ok)return F.tkSetuju(a);
   if(ok&&t&&a.jenis==='PENGELUARAN_OPS_BESAR'&&t.metodeBayar==='TUNAI'&&!kasOK(t.nominal)){toast('Saldo kas laci tidak cukup untuk menyetujui','err');return}
   if(ok&&t&&a.jenis==='PEMBATALAN_TRX'&&isJual(t)&&t.metodeBayar==='TUNAI'&&!kasOK(t.nominal)){toast('Saldo kas laci tidak cukup untuk membatalkan','err');return}
+  if(/ARSIP/.test(a.jenis)){ARX={};AR.info=null;AR.det=null}
   mut('approvalProses',{approvalId:a.approvalId,keputusan:p[1]},()=>{
     a.status=ok?'DISETUJUI':'DITOLAK';
     if(a.jenis==='PEMBATALAN_TRX'&&t){if(ok){t.status='DIBATALKAN';localEfek(t,-1)}else t.status='AKTIF'}
@@ -3692,7 +3724,39 @@ function syncKadar() {
 /* ============ LAPORAN ============ */
 let RP={a:'',b:''};
 let LAPX={k:'',rows:null,busy:false};
+let ARX={};
+const RF={sumber:'SEMUA',jenis:[],logam:'',kadar:'',kasir:'',metode:'',q:''};
+const RF_JENIS=[['PENJUALAN','Penjualan'],['TUKAR_TAMBAH','Tukar Tambah'],['BUYBACK','Buyback'],['JASA','Jasa'],['PENGELUARAN_OPS','Pengeluaran'],['SEDEKAH','Sedekah']];
+function rfAktif(){return (RF.sumber!=='SEMUA'?1:0)+(RF.jenis.length?1:0)+['logam','kadar','kasir','metode','q'].filter(k=>RF[k]).length}
+function rfCocok(t){
+  if(RF.sumber==='OPS'&&t.historis)return false;
+  if(RF.sumber==='HIS'&&!t.historis)return false;
+  if(RF.jenis.length&&RF.jenis.indexOf(t.jenis)<0)return false;
+  if(RF.logam&&t.logam!==RF.logam&&!(t.detailTT&&(t.detailTT.baru.logam===RF.logam||t.detailTT.lama.logam===RF.logam)))return false;
+  if(RF.kadar&&String(t.kadar)!==RF.kadar)return false;
+  if(RF.kasir&&t.operatorId!==RF.kasir)return false;
+  if(RF.metode&&t.metodeBayar!==RF.metode)return false;
+  if(RF.q){const q=RF.q.toLowerCase();if(![t.pelanggan,t.kategori,t.catatan,t.transaksiId,t.noNotaLama,t.teleponPelanggan].some(x=>String(x||'').toLowerCase().indexOf(q)>-1))return false}
+  return true;
+}
+/** Baris arsip historis (batch terkunci) pada periode laporan — diambil dari server sekali per periode. */
+function arsipLap(){
+  if(RF.sumber==='OPS')return [];
+  const k=RP.a+'|'+RP.b+'|'+S.ver;
+  if(ARX.k===k)return ARX.rows||[];
+  if(!ARX.busy){ARX.busy=true;op('arsipRange',{dari:RP.a,sampai:RP.b}).then(r=>{ARX={k:k,rows:r.success?r.data.rows:[],busy:false};const b=$('#lap-body');if(b)b.innerHTML=lapBody()}).catch(()=>{ARX.busy=false})}
+  return (ARX.k&&ARX.k.split('|').slice(0,2).join('|')===RP.a+'|'+RP.b)?(ARX.rows||[]):[];
+}
 function lapRows(){
+  const ops=RF.sumber==='HIS'?[]:lapRowsOps();
+  return ops.concat(arsipLap().filter(t=>t.waktu.slice(0,10)>=RP.a&&t.waktu.slice(0,10)<=RP.b)).filter(rfCocok);
+}
+function hisRow(t){
+  const m={PENJUALAN:['gem','ok'],BUYBACK:['undo','bad'],JASA:['tool','ok'],PENGELUARAN_OPS:['wallet','bad'],SEDEKAH:['heart','gold']}[t.jenis]||['file',''];
+  return '<div class="tr his-row"><span class="ico '+m[1]+'">'+ic(m[0])+'</span><span class="tm"><b>'+esc(jenisArs(t.jenis))+(t.kategori?' · '+esc(t.kategori):'')+'</b><small class="meta"><span class="tag his-tag">HISTORIS</span> '+esc([tgl(t.waktu).replace(/ \d{4}$/,'')+' '+jam(t.waktu),t.logam?(t.logam==='PERAK'?'Perak':'Emas')+(t.kadar?' '+t.kadar:'')+(t.berat?' · '+gr(t.berat):''):'',t.pelanggan].filter(Boolean).join(' · '))+'</small></span><span class="ta '+(['BUYBACK','PENGELUARAN_OPS','SEDEKAH'].indexOf(t.jenis)>-1?'neg':'')+'"><b>'+rp(t.nominal)+'</b><small class="mono">'+esc(t.transaksiId)+'</small></span></div>';
+}
+const rowAny=t=>t.historis?hisRow(t):trxRow(t);
+function lapRowsOps(){
   const f=t=>live(t)&&t.waktu.slice(0,10)>=RP.a&&t.waktu.slice(0,10)<=RP.b;
   if(S.batasRiwayat&&RP.a&&RP.a<S.batasRiwayat){
     const k=RP.a+'|'+RP.b+'|'+S.ver;
@@ -3760,12 +3824,12 @@ function rekapKartu(judul,ikon,list,grupFn,key){
   const keys=Object.keys(g).sort((a,b)=>g[b].v-g[a].v);
   return '<div class="card rekap-card"><div class="hd"><div><h3>'+ic(ikon,'s')+' '+judul+'</h3><small>'+list.length+' transaksi</small></div><b class="rekap-tot">'+rp(tot)+'</b></div>'+
     (keys.length?keys.map(k=>{const p=Math.round(g[k].v/(tot||1)*100);return '<div class="rk-row"><div class="rk-top"><span>'+esc(k)+'</span><b>'+rp(g[k].v)+'</b></div><div class="rk-sub"><small>'+g[k].n+'×'+(g[k].gr?' · '+gr(g[k].gr):'')+'</small><small>'+p+'%</small></div><div class="pay-bar-bg"><div class="pay-bar-fill" style="width:'+p+'%"></div></div></div>'}).join('')+
-      '<details class="rk-det"><summary>Lihat '+list.length+' transaksi</summary>'+sortD(list).slice(0,60).map(trxRow).join('')+'</details>':empty('Tidak ada data pada periode ini.'))+'</div>';
+      '<details class="rk-det"><summary>Lihat '+list.length+' transaksi</summary>'+sortD(list).slice(0,60).map(rowAny).join('')+'</details>':empty('Tidak ada data pada periode ini.'))+'</div>';
 }
 function lapBody(){
-  const x=lapStats(),days={};
+  const x=lapStats(),days={},perBln=(Date.parse(RP.b)-Date.parse(RP.a))/864e5>62,lblD=d=>d.length===7?blnNama(d):tgl(d);
   x.L.forEach(t=>{
-    const d=t.waktu.slice(0,10);
+    const d=t.waktu.slice(0,perBln?7:10);
     days[d]=days[d]||{j:0,b:0,o:0,s:0};
     if(t.jenis==='TUKAR_TAMBAH'){
       days[d].j+=(t.detailTT?t.detailTT.nilaiBaru:(t.nominal>0?t.nominal:0));
@@ -3784,8 +3848,8 @@ function lapBody(){
   });
   const totalMetode=Object.values(metode).reduce((a,b)=>a+b,0)||1;
   const sortedDays=Object.keys(days).sort().reverse();
-  const tableRows=sortedDays.map(d=>'<tr><td><b>'+tgl(d)+'</b></td><td class="r" style="color:#059669;font-weight:700">'+rp(days[d].j)+'</td><td class="r" style="color:#d97706;font-weight:600">'+rp(days[d].b)+'</td><td class="r" style="color:#64748b">'+rp(days[d].o)+'</td><td class="r" style="color:#8E7240">'+rp(days[d].s)+'</td></tr>').join('')||'<tr><td colspan="5">'+empty('Tidak ada data.')+'</td></tr>';
-  const mobileCards=sortedDays.map(d=>'<div class="rep-day-card"><div class="rep-day-hd"><span class="rep-day-date">'+ic('cal','s')+' <b>'+tgl(d)+'</b></span><span class="tag gold" style="font-weight:700">'+rp(days[d].j)+'</span></div><div class="rep-day-stats"><div class="rep-stat-col"><small>Penjualan</small><span class="val val-ok">'+rp(days[d].j)+'</span></div><div class="rep-stat-col"><small>Buyback</small><span class="val val-bb">'+rp(days[d].b)+'</span></div><div class="rep-stat-col"><small>Pengeluaran</small><span class="val val-op">'+rp(days[d].o)+'</span></div><div class=\"rep-stat-col\"><small>Sedekah</small><span class=\"val\">'+rp(days[d].s)+'</span></div></div></div>').join('')||empty('Tidak ada data.');
+  const tableRows=sortedDays.map(d=>'<tr><td><b>'+lblD(d)+'</b></td><td class="r" style="color:#059669;font-weight:700">'+rp(days[d].j)+'</td><td class="r" style="color:#d97706;font-weight:600">'+rp(days[d].b)+'</td><td class="r" style="color:#64748b">'+rp(days[d].o)+'</td><td class="r" style="color:#8E7240">'+rp(days[d].s)+'</td></tr>').join('')||'<tr><td colspan="5">'+empty('Tidak ada data.')+'</td></tr>';
+  const mobileCards=sortedDays.map(d=>'<div class="rep-day-card"><div class="rep-day-hd"><span class="rep-day-date">'+ic('cal','s')+' <b>'+lblD(d)+'</b></span><span class="tag gold" style="font-weight:700">'+rp(days[d].j)+'</span></div><div class="rep-day-stats"><div class="rep-stat-col"><small>Penjualan</small><span class="val val-ok">'+rp(days[d].j)+'</span></div><div class="rep-stat-col"><small>Buyback</small><span class="val val-bb">'+rp(days[d].b)+'</span></div><div class="rep-stat-col"><small>Pengeluaran</small><span class="val val-op">'+rp(days[d].o)+'</span></div><div class=\"rep-stat-col\"><small>Sedekah</small><span class=\"val\">'+rp(days[d].s)+'</span></div></div></div>').join('')||empty('Tidak ada data.');
   const metodeList=Object.keys(metode).map(k=>{
     const amt=metode[k],pct=Math.round((amt/totalMetode)*100);
     return '<div class="pay-meth-item"><div class="pay-meth-row"><span style="display:inline-flex;align-items:center;gap:8px"><b>'+esc(k)+'</b><span class="tag" style="font-size:11px">'+pct+'%</span></span><span style="font-weight:700;color:var(--ink)">'+rp(amt)+'</span></div><div class="pay-bar-bg"><div class="pay-bar-fill" style="width:'+pct+'%"></div></div></div>';
@@ -3800,26 +3864,61 @@ function lapBody(){
       '<div class="rep-avg-card perak"><div class="rep-avg-hd"><span class="rep-avg-title">Buyback Perak</span><span class="rep-avg-badge bb">BUYBACK</span></div><div class="rep-avg-main">'+rp(x.rekap.bbPerak.nom)+'</div><div class="rep-avg-sub">'+nf2.format(x.rekap.bbPerak.gram)+' gr dibeli</div><div class="rep-avg-rate"><span class="rep-avg-rate-lbl">Rata-rata:</span><span class="rep-avg-rate-val">'+rp(x.rekap.bbPerak.avg)+'/gr</span></div></div>'+
     '</div></div>';
 
-  return '<div class="grid g3 kpi-row" style="margin:16px 0">'+kpi('Penjualan Logam',rp(x.jual),'<small>'+nf2.format(x.gram)+' gr emas · '+nf2.format(x.perak)+' gr perak</small>','gem')+kpi('Pemasukan / Jasa',rp(x.jasa),'<small>'+x.nota+' nota</small>','tool')+
+  const nHis=x.L.filter(t=>t.historis).length,nAkt=rfAktif();
+  const hasil='<div class="card rf-hasil" style="margin-top:16px"><div class="hd"><div><h3>'+ic('search','s')+' Daftar Transaksi'+(nAkt?' Hasil Filter':'')+'</h3><small>'+x.L.length+' transaksi'+(nHis?' · '+nHis+' historis':'')+'</small></div></div>'+(x.L.length?batas('rfl',sortD(x.L),25,rowAny):empty('Tidak ada transaksi yang cocok dengan filter.'))+'</div>';
+  const info=(nHis||nAkt)?'<div class="rf-info">'+(nAkt?'<span class="pill warn">'+ic('filter','s')+' '+nAkt+' filter aktif</span>':'')+(nHis?'<span class="pill">'+ic('history','s')+' Termasuk '+nHis+' transaksi historis (arsip)</span>':'')+(ARX.busy?'<span class="pill">Memuat arsip…</span>':'')+'</div>':'';
+  return info+'<div class="grid g3 kpi-row" style="margin:16px 0">'+kpi('Penjualan Logam',rp(x.jual),'<small>'+nf2.format(x.gram)+' gr emas · '+nf2.format(x.perak)+' gr perak</small>','gem')+kpi('Pemasukan / Jasa',rp(x.jasa),'<small>'+x.nota+' nota</small>','tool')+
      kpi('Buyback',rp(x.bb),'<small>'+x.lists.bb.length+' transaksi</small>','undo')+kpi('Pengeluaran Operasional',rp(x.op),'<small>'+x.lists.op.length+' transaksi</small>','wallet')+
      kpi('Sedekah',rp(x.sd),'<small>'+x.lists.sd.length+' kali</small>','heart')+kpi('Selisih Kas',rp(x.jual+x.jasa-x.bb-x.op-x.sd),'<small>pemasukan − pengeluaran</small>','coin','gold')+'</div>'+
    '<div class="grid g3 rekap-3">'+rekapKartu('Rekap Buyback','undo',x.lists.bb,t=>(t.logam==='PERAK'?'Perak ':'Emas ')+(t.kadar||'')+' · '+(t.kategori||''),'bb')+
      rekapKartu('Rekap Pengeluaran','wallet',x.lists.op,t=>t.kategori||'Lainnya','op')+rekapKartu('Rekap Sedekah','heart',x.lists.sd,t=>t.kategori||'Sedekah','sd')+'</div>'+
    avgSection+
-   '<div class="grid g2"><div class="card"><div class="hd"><div><h3>Per Hari</h3><small>Ringkasan transaksi harian</small></div><span class="tag">'+sortedDays.length+' Hari</span></div><div class="tbw desk-only"><table><thead><tr><th>Tanggal</th><th class="r">Penjualan</th><th class="r">Buyback</th><th class="r">Pengeluaran</th><th class="r">Sedekah</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="rep-day-cards mobile-only">'+mobileCards+'</div></div>'+
-   '<div class="card"><div class="hd"><div><h3>Metode Pembayaran (Pemasukan)</h3><small>Distribusi pembayaran kasir</small></div><span class="tag gold">'+rp(totalMetode===1&&!Object.keys(metode).length?0:totalMetode)+'</span></div><div style="padding-top:4px">'+metodeList+'</div></div></div>';
+   '<div class="grid g2"><div class="card"><div class="hd"><div><h3>'+(perBln?'Per Bulan':'Per Hari')+'</h3><small>Ringkasan transaksi '+(perBln?'bulanan':'harian')+'</small></div><span class="tag">'+sortedDays.length+(perBln?' Bulan':' Hari')+'</span></div><div class="tbw desk-only"><table><thead><tr><th>Tanggal</th><th class="r">Penjualan</th><th class="r">Buyback</th><th class="r">Pengeluaran</th><th class="r">Sedekah</th></tr></thead><tbody>'+tableRows+'</tbody></table></div><div class="rep-day-cards mobile-only">'+mobileCards+'</div></div>'+
+   '<div class="card"><div class="hd"><div><h3>Metode Pembayaran (Pemasukan)</h3><small>Distribusi pembayaran kasir</small></div><span class="tag gold">'+rp(totalMetode===1&&!Object.keys(metode).length?0:totalMetode)+'</span></div><div style="padding-top:4px">'+metodeList+'</div></div></div>'+hasil;
 }
 P.laporan=function(){
   if(!RP.a){RP.b=today();RP.a=RP.b.slice(0,8)+'01'}
-  return '<div class="ph"><div><h1>Laporan &amp; Rekap</h1><p>Data 90 hari terakhir tersedia instan. Ekspor mengambil dari database lengkap.</p></div></div><div class="card"><div class="hd"><div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap"><label class="fld" style="margin:0"><span class="lb">Dari</span><input class="inp" type="date" value="'+RP.a+'" data-in="rpa"></label><label class="fld" style="margin:0"><span class="lb">Sampai</span><input class="inp" type="date" value="'+RP.b+'" data-in="rpb"></label></div>'+
-   '<div class="chips"><button class="btn sm" data-a="rpre" data-v="0">Hari ini</button><button class="btn sm" data-a="rpre" data-v="6">7 hari</button><button class="btn sm" data-a="rpre" data-v="m">Bulan ini</button></div></div><div class="chips"><button class="btn sm dk" data-a="lapwa">'+ic('send','s')+' Kirim Laporan WA</button><button class="btn sm" data-a="lapx">'+ic('download','s')+' Ekspor Sheets / Excel / PDF</button></div><div id="lap-body">'+lapBody()+'</div></div>';
+  const thn=+today().slice(0,4),sel=(k,o,ph)=>'<select class="inp" data-in="rfsel" data-k="'+k+'"><option value="">'+ph+'</option>'+o.map(x=>{const q=Array.isArray(x)?x:[x,x];return '<option value="'+esc(q[0])+'"'+(RF[k]===q[0]?' selected':'')+'>'+esc(q[1])+'</option>'}).join('')+'</select>';
+  const kadar=[...new Set(KADAR.EMAS.concat(KADAR.PERAK))];
+  const nA=rfAktif(),pre=[['0','Hari ini'],['6','7 hari'],['m','Bulan ini'],['bl','Bulan lalu'],['y','Tahun ini']];
+  return '<div class="ph"><div><h1>Laporan &amp; Rekap</h1><p>Rekap operasional digabung dengan arsip transaksi lama (historis) yang sudah dikunci Owner.</p></div><div class="chips"><button class="btn sm dk" data-a="lapwa">'+ic('send','s')+' Kirim WA</button><button class="btn sm" data-a="lapx">'+ic('download','s')+' Ekspor</button></div></div>'+
+   '<div class="card rf-card">'+
+    '<div class="rf-per"><div class="chips rf-pre">'+pre.map(x=>'<button class="btn sm'+(RP.k===x[0]?' pri':'')+'" data-a="rpre" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'+
+    '<div class="rf-grid"><label class="fld"><span class="lb">Pilih bulan</span><input class="inp" type="month" data-in="rpm" value="'+(RP.k==='bulan'?RP.a.slice(0,7):'')+'"></label>'+
+     '<label class="fld"><span class="lb">Tahun</span><select class="inp" data-in="rpy"><option value="">-</option>'+[thn,thn-1,thn-2].map(y=>'<option'+(RP.k==='thn'&&RP.a.slice(0,4)===String(y)?' selected':'')+'>'+y+'</option>').join('')+'</select></label>'+
+     '<label class="fld"><span class="lb">Dari</span><input class="inp" type="date" value="'+RP.a+'" data-in="rpa"></label><label class="fld"><span class="lb">Sampai</span><input class="inp" type="date" value="'+RP.b+'" data-in="rpb"></label></div></div>'+
+    '<details class="rf-box"'+(nA||RF.buka?' open':'')+'><summary>'+ic('filter','s')+' Filter Rekapan'+(nA?' <span class="tag gold">'+nA+' aktif</span>':'')+'</summary>'+
+     '<div class="lbl" style="margin:10px 0 6px">Jenis transaksi</div><div class="chips rf-jenis">'+RF_JENIS.map(x=>'<button class="btn xs'+(RF.jenis.indexOf(x[0])>-1?' pri':'')+'" data-a="rfj" data-v="'+x[0]+'">'+x[1]+'</button>').join('')+'</div>'+
+     '<div class="rf-grid" style="margin-top:10px">'+
+      '<label class="fld"><span class="lb">Sumber data</span>'+sel('sumber',[['OPS','Operasional (aplikasi)'],['HIS','Historis (arsip lama)']],'Semua data').replace('<option value="">Semua data</option>','<option value="SEMUA">Semua data</option>')+'</label>'+
+      '<label class="fld"><span class="lb">Logam</span>'+sel('logam',[['EMAS','Emas'],['PERAK','Perak']],'Semua logam')+'</label>'+
+      '<label class="fld"><span class="lb">Kadar</span>'+sel('kadar',kadar,'Semua kadar')+'</label>'+
+      '<label class="fld"><span class="lb">Kasir</span>'+sel('kasir',(S.users||[]).map(u=>[u.userId,u.nama]),'Semua kasir')+'</label>'+
+      '<label class="fld"><span class="lb">Metode bayar</span>'+sel('metode',[['TUNAI','Tunai'],['TRANSFER','Transfer'],['QRIS','QRIS'],['DEBIT','Debit']],'Semua metode')+'</label>'+
+      '<label class="fld"><span class="lb">Cari</span><input class="inp" data-in="rfq" value="'+esc(RF.q)+'" placeholder="Pelanggan, kategori, no. nota…"></label>'+
+     '</div>'+(nA?'<button class="btn sm gh" data-a="rfreset">'+ic('x','s')+' Hapus semua filter</button>':'')+'</details>'+
+   '</div>'+
+   '<div id="lap-body">'+lapBody()+'</div>';
 };
-IN.rpa=v=>{RP.a=v;$('#lap-body').innerHTML=lapBody()};IN.rpb=v=>{RP.b=v;$('#lap-body').innerHTML=lapBody()};
-A.rpre=v=>{RP.b=today();RP.a=v==='m'?RP.b.slice(0,8)+'01':addDays(RP.b,-(+v));RJ='';const e=$('#pg-laporan');e.innerHTML=P.laporan()};
+const lapUlang=()=>{RJ='';const e=$('#pg-laporan');if(e)e.innerHTML=P.laporan()};
+IN.rpa=v=>{RP.a=v;RP.k='';lapUlang()};IN.rpb=v=>{RP.b=v;RP.k='';lapUlang()};
+IN.rpm=v=>{if(!v)return;RP.a=v+'-01';RP.b=addDays(addDays(RP.a,32).slice(0,8)+'01',-1);RP.k='bulan';lapUlang()};
+IN.rpy=v=>{if(!v)return;RP.a=v+'-01-01';RP.b=v===today().slice(0,4)?today():v+'-12-31';RP.k='thn';lapUlang()};
+A.rpre=v=>{const t=today();RP.k=v;
+  if(v==='m'){RP.b=t;RP.a=t.slice(0,8)+'01'}
+  else if(v==='bl'){RP.b=addDays(t.slice(0,8)+'01',-1);RP.a=RP.b.slice(0,8)+'01'}
+  else if(v==='y'){RP.b=t;RP.a=t.slice(0,4)+'-01-01'}
+  else{RP.b=t;RP.a=addDays(t,-(+v))}
+  lapUlang();
+};
+A.rfj=v=>{const i=RF.jenis.indexOf(v);if(i>-1)RF.jenis.splice(i,1);else RF.jenis.push(v);RF.buka=1;lapUlang()};
+IN.rfsel=(v,el)=>{RF[el.dataset.k]=el.dataset.k==='sumber'&&!v?'SEMUA':v;RF.buka=1;lapUlang()};
+IN.rfq=v=>{RF.q=v.trim();RF.buka=1;const b=$('#lap-body');if(b)b.innerHTML=lapBody()};
+A.rfreset=()=>{Object.assign(RF,{sumber:'SEMUA',jenis:[],logam:'',kadar:'',kasir:'',metode:'',q:''});lapUlang()};
 A.lapwa=()=>{
   const x=lapStats();
   waOpen('*LAPORAN '+S.setting.namaToko.toUpperCase()+'*\n'+
-    tgl(RP.a)+' s/d '+tgl(RP.b)+'\n\n'+
+    tgl(RP.a)+' s/d '+tgl(RP.b)+(rfAktif()?' (difilter)':'')+(x.L.some(t=>t.historis)?'\nTermasuk arsip historis':'')+'\n\n'+
     'Penjualan logam: '+rp(x.jual)+'\n'+
     'Emas terjual: '+nf2.format(x.gram)+' gr\n'+
     'Perak terjual: '+nf2.format(x.perak)+' gr\n'+
@@ -3842,6 +3941,240 @@ A.lapx=()=>{
     if(!r.success){b.innerHTML='<div class="err">'+esc(r.message)+'</div>';return}
     const d=r.data;b.className='';b.innerHTML='<p style="margin-bottom:12px"><b>'+d.jumlah+' transaksi</b> diekspor ke folder Drive "Laporan".</p><div class="grid" style="gap:8px"><a class="btn pri" target="_blank" rel="noopener" href="'+esc(d.sheetUrl)+'">Buka Google Sheets</a><a class="btn" target="_blank" rel="noopener" href="'+esc(d.xlsxUrl)+'">Unduh Excel (.xlsx)</a><a class="btn" target="_blank" rel="noopener" href="'+esc(d.pdfUrl)+'">Buka PDF</a></div>'}).catch(()=>{const b=$('#ex-b');if(b)b.innerHTML='<div class="err">Gagal terhubung ke server.</div>'});
 };
+
+/* ============ ARSIP TRANSAKSI LAMA (HISTORIS) — v3.7 ============ */
+let MT='arsip';
+const AR={info:null,busy:false,bid:'',det:null,tab:'manual',val:null,file:null,rows:null,per:''};
+const JENIS_ARS=[['PENJUALAN','Penjualan'],['BUYBACK','Buyback'],['JASA','Jasa / Pemasukan'],['PENGELUARAN_OPS','Pengeluaran'],['SEDEKAH','Sedekah']];
+const jenisArs=j=>(JENIS_ARS.find(x=>x[0]===j)||[j,j])[1];
+const stBatch={DRAFT:['warn','Draft'],MENUNGGU:['gold','Menunggu Owner'],TERKUNCI:['ok','Terkunci']};
+const blnNama=p=>{const m=String(p||'').split('-');return m.length===2?['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][+m[1]-1]+' '+m[0]:p};
+function opW(name,data){return call('apiCall',[TOKEN,name,data||{},'ars-'+Date.now()+'-'+Math.random().toString(36).slice(2,7)]).then(r=>r||{success:false,message:'Tidak ada respons'}).catch(e=>({success:false,message:(e&&e.message)||'Koneksi terputus'}))}
+function arMuat(paksa){
+  if(AR.busy&&!paksa)return;AR.busy=true;
+  return op('arsipInfo').then(r=>{AR.busy=false;if(r.success){AR.info=r.data;if(AR.bid)return arDetail(AR.bid,true);arRender()}else{AR.err=r.message;arRender()}});
+}
+function arDetail(bid,diam){
+  AR.bid=bid;if(!diam){AR.det=null;AR.val=null;arRender()}
+  return op('arsipBatchDetail',{batchId:bid}).then(r=>{if(r.success)AR.det=r.data;else{toast(r.message,'err');AR.bid=''}arRender()});
+}
+function arRender(){const e=$('#pg-migrasi');if(e&&CUR==='migrasi'){RJ='';e.innerHTML=P.migrasi();hydrateIcons&&hydrateIcons()}}
+function arsipUrl(){return location.href.split('#')[0].replace(/[?].*$/,'').replace(/\/(index\.html)?$/,'')+'/ArsipTransaksi'}
+
+function arTab(){
+  const I=AR.info;
+  if(!I){if(!AR.busy)arMuat();return '<div class="card">'+(AR.err?'<div class="err">'+esc(AR.err)+'</div>':empty('Memuat arsip…'))+'</div>'}
+  const mulai=I.mulaiPOS,maxP=addDays(mulai.slice(0,8)+'01',-1).slice(0,7);
+  const head='<div class="card ar-intro" style="margin-bottom:16px"><div class="hd"><div><h3>'+ic('history','s')+' Arsip Transaksi Lama</h3><small>Untuk transaksi dari bulan-bulan sebelum aplikasi dipakai. Tidak mengubah kasir, kas laci, brankas, bank, maupun stok. Hanya laporan & rekap yang ikut bertambah setelah Owner menyetujui.</small></div></div>'+
+    '<div class="ar-meta"><div class="mini"><small>Aplikasi mulai dipakai</small><b>'+tgl(mulai)+'</b>'+(I.isOwner?'<button class="btn xs gh" data-a="armulai">'+ic('edit','s')+' Ubah</button>':'')+'</div>'+
+    '<div class="mini"><small>Halaman khusus</small><b class="mono ar-url">'+esc(arsipUrl().replace(/^https?:\/\//,''))+'</b><button class="btn xs gh" data-a="arcopy">'+ic('file','s')+' Salin</button></div></div></div>';
+  if(AR.bid)return head+arBatchView();
+  const B=I.batches||[],per={};
+  B.forEach(b=>{(per[b.periode]=per[b.periode]||[]).push(b)});
+  const kartu=Object.keys(per).sort().reverse().map(p=>{const bs=per[p],lock=I.terkunci[p],tot=bs.reduce((s,b)=>s+(+b.totalNominal||0),0),n=bs.reduce((s,b)=>s+(+b.jumlah||0),0);
+    return '<div class="ar-per">'+'<div class="ar-per-hd"><b>'+blnNama(p)+'</b>'+(lock?'<span class="tag ok">'+ic('lock','s')+' Terkunci</span>':'')+'</div><small>'+n+' baris · '+rp(tot)+'</small>'+
+      bs.map(b=>'<button class="ar-batch" data-a="arbuka" data-v="'+esc(b.batchId)+'"><span class="tm"><b class="mono">'+esc(b.batchId)+'</b><small>'+(b.sumber==='EXCEL'?'Excel'+(b.namaFile?' · '+esc(b.namaFile):''):'Input manual')+' · '+b.jumlah+' baris</small></span><span class="tag '+(stBatch[b.status]||['',''])[0]+'">'+(stBatch[b.status]||['',b.status])[1]+'</span></button>').join('')+'</div>'}).join('');
+  return head+
+   '<div class="grid dash2" style="align-items:start"><div class="card"><div class="hd"><div><h3>1. Pilih Periode</h3><small>Bulan transaksi lama yang akan dimasukkan</small></div></div>'+
+    '<label class="fld"><span class="lb">Periode (bulan)</span><input class="inp" type="month" id="ar-per" max="'+maxP+'" value="'+esc(AR.per||maxP)+'"></label>'+
+    '<button class="btn pri blk" data-a="arperiode">'+ic('plus','s')+' Buka / Buat Batch Periode Ini</button>'+
+    '<small style="display:block;margin-top:8px;color:var(--mut)">Periode harus sebelum '+blnNama(mulai.slice(0,7))+'. Periode yang sudah terkunci hanya bisa diubah lewat koreksi.</small></div>'+
+   '<div class="card"><div class="hd"><div><h3>Batch Migrasi per Periode</h3><small>'+B.length+' batch</small></div></div>'+(kartu||empty('Belum ada arsip. Pilih periode untuk mulai.'))+'</div></div>'+
+   ((I.koreksi||[]).length?'<div class="card" style="margin-top:16px"><div class="hd"><div><h3>Riwayat Koreksi Arsip</h3><small>Semua perubahan pada periode terkunci tercatat di sini</small></div></div>'+I.koreksi.slice(0,30).map(korRow).join('')+'</div>':'');
+}
+function korRow(k){
+  const d=k.dataBaru||k.dataLama||{};
+  return '<div class="tr"><span class="ico '+(k.status==='DITERAPKAN'?'ok':k.status==='DITOLAK'?'bad':'gold')+'">'+ic(k.aksi==='HAPUS'?'trash':k.aksi==='TAMBAH'?'plus':'edit')+'</span><span class="tm"><b>'+k.aksi+' · '+esc(jenisArs(d.jenis)||'')+' '+(d.nominal?rp(d.nominal):'')+'</b><small class="meta">'+esc(tgl(k.waktu).replace(/ \d{4}$/,'')+' '+jam(k.waktu)+' · '+(uname(k.diajukanOleh)||'')+' · '+k.alasan)+'</small></span><span class="tag '+(k.status==='DITERAPKAN'?'ok':k.status==='DITOLAK'?'bad':'warn')+'">'+k.status+'</span></div>';
+}
+function arRow(r,b){
+  const del=b.status==='DRAFT',kor=b.status==='TERKUNCI',hapus=r.status!=='HISTORIS';
+  return '<div class="tr ar-row'+(hapus?' ar-del':'')+'"><span class="ico '+(r.jenis==='PENJUALAN'||r.jenis==='JASA'?'ok':'bad')+'">'+ic({PENJUALAN:'gem',BUYBACK:'undo',JASA:'tool',PENGELUARAN_OPS:'wallet',SEDEKAH:'heart'}[r.jenis]||'file')+'</span>'+
+   '<span class="tm"><b>'+esc(jenisArs(r.jenis))+(r.kategori?' · '+esc(r.kategori):'')+'</b><small class="meta">'+esc([tgl(r.tanggalTransaksi).replace(/ \d{4}$/,'')+' '+(r.jamTransaksi||''),r.logam?(r.logam==='PERAK'?'Perak':'Emas')+(r.kadar?' '+r.kadar:'')+(r.berat?' · '+gr(r.berat):''):'',r.pelanggan,r.noNotaLama?'nota '+r.noNotaLama:''].filter(Boolean).join(' · '))+'</small><small class="mono ar-id">'+esc(r.arsipId)+(hapus?' · DIHAPUS (koreksi)':'')+'</small></span>'+
+   '<span class="ta"><b>'+rp(r.nominal)+'</b></span>'+
+   (del?'<button class="ibtn del" data-a="arhapus" data-v="'+esc(r.arsipId)+'" title="Hapus baris">'+ic('trash','s')+'</button>':'')+
+   (kor&&!hapus?'<button class="btn xs gh" data-a="arkor" data-v="'+esc(r.arsipId)+'">Koreksi</button>':'')+'</div>';
+}
+function arBatchView(){
+  const D=AR.det;
+  if(!D)return '<div class="card">'+empty('Memuat batch…')+'</div>';
+  const b=D.batch,st=stBatch[b.status]||['',b.status],o=AR.info.isOwner,rows=D.rows||[];
+  const aktif=rows.filter(r=>r.status==='HISTORIS');
+  const aksi=b.status==='DRAFT'?
+      (o?'<button class="btn pri" data-a="arsetuju"'+(aktif.length?'':' disabled')+'>'+ic('lock','s')+' Setujui &amp; Kunci</button>':'<button class="btn pri" data-a="arajukan"'+(aktif.length?'':' disabled')+'>'+ic('send','s')+' Ajukan ke Owner</button>')+'<button class="btn gh" data-a="arbatchdel">'+ic('trash','s')+' Hapus Batch</button>'
+    :b.status==='MENUNGGU'?(o?'<button class="btn pri" data-a="arsetuju">'+ic('lock','s')+' Setujui &amp; Kunci</button><button class="btn gh" data-a="artolak">'+ic('x','s')+' Tolak</button>':'<span class="pill warn">Menunggu persetujuan Owner</span>')
+    :'<button class="btn" data-a="arkortambah">'+ic('plus','s')+' Tambah via Koreksi</button>';
+  return '<div class="card ar-batch-hd" style="margin-bottom:16px"><button class="btn sm gh" data-a="arkembali">'+ic('undo','s')+' Semua periode</button>'+
+    '<div class="ar-bh"><div><small>Periode</small><h2>'+blnNama(b.periode)+'</h2><small class="mono">'+esc(b.batchId)+'</small></div><span class="tag '+st[0]+'">'+(b.status==='TERKUNCI'?ic('lock','s')+' ':'')+st[1]+'</span></div>'+
+    '<div class="grid g3 kpi-row">'+kpi('Baris historis',String(aktif.length),'<small>ID unik per baris</small>','file')+kpi('Total nominal',rp(aktif.reduce((s,r)=>s+(+r.nominal||0),0)),'','coin','gold')+kpi('Sumber',b.sumber==='EXCEL'?'Excel':'Manual','<small>'+esc(b.namaFile||'diinput '+tgl(b.dibuatPada))+'</small>','upload')+'</div>'+
+    (b.status==='TERKUNCI'?'<div class="info-box" style="margin-top:12px"><small>'+ic('lock','s')+' Periode ini sudah dikunci'+(b.disetujuiPada?' pada '+tgl(b.disetujuiPada):'')+'. Data hanya bisa diubah lewat <b>Koreksi</b> dengan alasan, dan semua koreksi tercatat.</small></div>':'')+
+    (b.catatan&&/^Ditolak/.test(b.catatan)?'<div class="err" style="margin-top:12px">'+esc(b.catatan)+'</div>':'')+
+    '<div class="ar-aksi">'+aksi+'</div></div>'+
+   (b.status==='DRAFT'?arInputCard(b):'')+
+   '<div class="card" style="margin-top:16px"><div class="hd"><div><h3>Isi Batch</h3><small>'+rows.length+' baris · tanggal transaksi asli, terpisah dari tanggal input</small></div></div>'+
+    (rows.length?batas('arr'+b.batchId,rows.slice().sort((x,y)=>String(x.tanggalTransaksi+x.jamTransaksi).localeCompare(String(y.tanggalTransaksi+y.jamTransaksi))),40,r=>arRow(r,b)):empty('Belum ada data. Input manual atau import Excel di atas.'))+'</div>'+
+   ((D.koreksi||[]).length?'<div class="card" style="margin-top:16px"><div class="hd"><h3>Koreksi Batch Ini</h3></div>'+D.koreksi.slice().reverse().map(korRow).join('')+'</div>':'');
+}
+function arInputCard(b){
+  const t=AR.tab;
+  return '<div class="card"><div class="seg fill" style="margin-bottom:14px"><button class="'+(t==='manual'?'on':'')+'" data-a="artab" data-v="manual">'+ic('edit','s')+' Input Manual</button><button class="'+(t==='excel'?'on':'')+'" data-a="artab" data-v="excel">'+ic('upload','s')+' Import Excel</button></div>'+
+    (t==='manual'?arFormManual(b):arExcel(b))+'</div>';
+}
+function arFields(b,d){
+  d=d||{};const a=b.periode+'-01',z=addDays(addDays(a,32).slice(0,8)+'01',-1);
+  const sel=(n,o,v)=>'<select class="inp" name="'+n+'">'+o.map(x=>{const q=Array.isArray(x)?x:[x,x];return '<option value="'+esc(q[0])+'"'+(String(v||'')===String(q[0])?' selected':'')+'>'+esc(q[1])+'</option>'}).join('')+'</select>';
+  return '<div class="row2"><label class="fld"><span class="lb">Tanggal transaksi *</span><input class="inp" type="date" name="tanggal" min="'+a+'" max="'+z+'" value="'+esc(d.tanggalTransaksi||'')+'"></label>'+
+    '<label class="fld"><span class="lb">Jam</span><input class="inp" type="time" name="jam" value="'+esc(d.jamTransaksi||'')+'"></label></div>'+
+    '<div class="row2"><label class="fld"><span class="lb">Jenis *</span>'+sel('jenis',JENIS_ARS,d.jenis||'PENJUALAN')+'</label><label class="fld"><span class="lb">Kategori / barang</span><input class="inp" name="kategori" list="ar-kat" value="'+esc(d.kategori||'')+'" placeholder="Cincin, Listrik, Jasa Patri…"></label></div>'+
+    '<datalist id="ar-kat">'+BARANG.concat(KATJ,KATO,KATS).map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'+
+    '<div class="row3"><label class="fld"><span class="lb">Logam</span>'+sel('logam',[['','-'],['EMAS','Emas'],['PERAK','Perak']],d.logam||'')+'</label>'+
+    '<label class="fld"><span class="lb">Kadar</span><input class="inp" name="kadar" inputmode="decimal" value="'+esc(d.kadar||'')+'" placeholder="875"></label>'+
+    '<label class="fld"><span class="lb">Berat (gr)</span><input class="inp" name="berat" inputmode="decimal" value="'+esc(d.berat?String(d.berat).replace('.',','):'')+'" placeholder="0,00"></label></div>'+
+    '<div class="row2"><label class="fld"><span class="lb">Nominal *</span><input class="inp rp" name="nominal" inputmode="numeric" value="'+(d.nominal?'Rp. '+nf.format(d.nominal):'')+'" placeholder="Rp. 0"></label>'+
+    '<label class="fld"><span class="lb">Metode</span>'+sel('metode',[['TUNAI','Tunai'],['TRANSFER','Transfer'],['QRIS','QRIS'],['DEBIT','Debit'],['LAINNYA','Lainnya']],d.metodeBayar||'TUNAI')+'</label></div>'+
+    '<div class="row2"><label class="fld"><span class="lb">Pelanggan</span><input class="inp" name="pelanggan" value="'+esc(d.pelanggan||'')+'"></label><label class="fld"><span class="lb">No. nota lama</span><input class="inp" name="noNota" value="'+esc(d.noNotaLama||'')+'"></label></div>'+
+    '<label class="fld"><span class="lb">Catatan</span><input class="inp" name="catatan" value="'+esc(d.catatan||'')+'"></label>';
+}
+const arAmbil=f=>{const e=f.elements;return {tanggal:e.tanggal.value,jam:e.jam.value,jenis:e.jenis.value,kategori:e.kategori.value.trim(),logam:e.logam.value,kadar:e.kadar.value.trim(),berat:e.berat.value.trim(),nominal:rpVal(e.nominal.value),metode:e.metode.value,pelanggan:e.pelanggan.value.trim(),noNota:e.noNota.value.trim(),catatan:e.catatan.value.trim()}};
+function arFormManual(b){
+  return '<form id="arform" novalidate><div class="err hidden" id="ar-err"></div>'+arFields(b)+
+    '<button class="btn pri blk" type="submit">'+ic('check','s')+' Validasi &amp; Simpan Baris</button><small style="display:block;margin-top:6px;color:var(--mut)">Data yang sama persis (tanggal, jenis, nominal, berat, pelanggan, no. nota) otomatis ditolak sebagai duplikat.</small></form>';
+}
+SUB.arform=f=>{
+  const er=$('#ar-err'),x=arAmbil(f),btn=f.querySelector('button[type=submit]');er.classList.add('hidden');
+  btn.disabled=true;
+  opW('arsipSimpan',{batchId:AR.bid,rows:[x],mode:'SIMPAN'}).then(r=>{
+    btn.disabled=false;
+    const h=r.success&&r.data.hasil[0];
+    if(!r.success||!h.ok){er.textContent=r.success?(h.duplikat||h.errors.join(' · ')):r.message;er.classList.remove('hidden');return}
+    toast('Baris historis tersimpan','ok');
+    ['kategori','berat','nominal','pelanggan','noNota','catatan'].forEach(k=>f.elements[k].value='');f.elements.nominal.focus();
+    arDetail(AR.bid,true);
+  });
+};
+function arExcel(b){
+  const V=AR.val;
+  let h='<div class="ar-excel"><div class="row2"><button type="button" class="btn" data-a="artemplate">'+ic('download','s')+' Unduh Template Excel</button>'+
+    '<button type="button" class="btn pri" data-a="arpilih">'+ic('upload','s')+' '+(AR.file?esc(AR.file):'Pilih File Excel / CSV')+'</button></div>'+
+    '<input type="file" id="ar-file" accept=".xlsx,.xls,.csv" class="hidden" data-in="arfile">'+
+    '<small style="display:block;margin:8px 0 0;color:var(--mut)">Kolom: Tanggal, Jam, Jenis, Kategori, Logam, Kadar, Berat, Nominal, Metode, Pelanggan, No Nota, Catatan. Semua tanggal wajib di periode '+blnNama(b.periode)+'.</small></div>';
+  if(AR.parsing)h+='<div class="pill warn" style="margin-top:12px">Membaca & memvalidasi file…</div>';
+  if(V){
+    const ok=V.hasil.filter(x=>x.ok).length;
+    h+='<div class="ar-val"><div class="chips" style="margin:14px 0 10px"><span class="pill ok">'+V.valid+' valid</span><span class="pill warn">'+V.duplikat+' duplikat</span><span class="pill bad">'+V.salah+' salah</span></div>'+
+      batas('arv',V.hasil,30,x=>'<div class="tr ar-vrow '+(x.ok?'':'bad')+'"><span class="ico '+(x.ok?'ok':x.duplikat?'gold':'bad')+'">'+ic(x.ok?'check':x.duplikat?'swap':'alert')+'</span><span class="tm"><b>Baris '+esc(x.baris)+' · '+esc(jenisArs(x.row.jenis))+' · '+rp(x.row.nominal)+'</b><small class="meta">'+esc(x.row.tanggalTransaksi+(x.row.kategori?' · '+x.row.kategori:'')+(x.row.berat?' · '+x.row.berat+' gr':''))+'</small>'+(x.ok?'':'<small class="ar-why">'+esc(x.duplikat||x.errors.join(' · '))+'</small>')+'</span></div>')+
+      '<button class="btn pri blk" style="margin-top:12px" data-a="arimport"'+(ok?'':' disabled')+'>'+ic('check','s')+' Simpan '+ok+' Baris Valid</button><small style="display:block;margin-top:6px;color:var(--mut)">Baris salah & duplikat tidak disimpan. Perbaiki di Excel lalu impor ulang — baris yang sudah tersimpan otomatis ditolak sebagai duplikat.</small></div>';
+  }
+  return h;
+}
+function muatXLSX(){
+  return new Promise((ok,no)=>{if(window.XLSX)return ok();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=()=>ok();s.onerror=()=>no(new Error('Pustaka Excel gagal dimuat. Periksa internet.'));document.head.appendChild(s)});
+}
+const AR_KOLOM={tanggal:['tanggal','tgl','date','tanggaltransaksi'],jam:['jam','waktu','time','pukul'],jenis:['jenis','tipe','type','jenistransaksi'],kategori:['kategori','barang','item','namabarang'],
+  logam:['logam','bahan','metal'],kadar:['kadar','karat'],berat:['berat','gram','gr','beratgr','beratgram'],nominal:['nominal','total','jumlah','nilai','harga','totalrp'],
+  metode:['metode','metodebayar','pembayaran','bayar'],pelanggan:['pelanggan','nama','customer','konsumen','namapelanggan'],noNota:['nonota','nota','nonotalama','invoice','nomornota'],catatan:['catatan','keterangan','note','ket']};
+function arPetakan(o){
+  const n={};Object.keys(o).forEach(k=>{n[String(k).toLowerCase().replace(/[^a-z]/g,'')]=o[k]});
+  const r={};Object.keys(AR_KOLOM).forEach(k=>{const c=AR_KOLOM[k].find(x=>n[x]!==undefined&&n[x]!=='');r[k]=c?n[c]:''});
+  const fmt=d=>d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  if(r.tanggal instanceof Date)r.tanggal=fmt(r.tanggal);
+  else if(typeof r.tanggal==='number'&&window.XLSX){const p=XLSX.SSF.parse_date_code(r.tanggal);if(p)r.tanggal=p.y+'-'+('0'+p.m).slice(-2)+'-'+('0'+p.d).slice(-2)}
+  if(r.jam instanceof Date)r.jam=('0'+r.jam.getHours()).slice(-2)+':'+('0'+r.jam.getMinutes()).slice(-2);
+  else if(typeof r.jam==='number'){const m=Math.round(r.jam*1440);r.jam=('0'+Math.floor(m/60)%24).slice(-2)+':'+('0'+m%60).slice(-2)}
+  Object.keys(r).forEach(k=>{if(typeof r[k]!=='string')r[k]=r[k]==null?'':String(r[k])});
+  return r;
+}
+IN.arfile=(v,el)=>{
+  const f=el.files&&el.files[0];if(!f)return;
+  AR.file=f.name;AR.val=null;AR.rows=null;AR.parsing=true;arRender();
+  muatXLSX().then(()=>new Promise((ok,no)=>{const rd=new FileReader();rd.onload=()=>ok(rd.result);rd.onerror=()=>no(new Error('File tidak bisa dibaca'));rd.readAsArrayBuffer(f)}))
+   .then(buf=>{
+     const wb=XLSX.read(buf,{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]];
+     const js=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
+     const rows=js.map((o,i)=>Object.assign(arPetakan(o),{baris:i+2})).filter(r=>r.tanggal||r.nominal||r.jenis);
+     if(!rows.length)throw new Error('Tidak ada baris data. Gunakan template agar nama kolom sesuai.');
+     if(rows.length>2000)throw new Error('Maksimal 2.000 baris per impor. Pecah file menjadi beberapa bagian.');
+     AR.rows=rows;
+     return opW('arsipSimpan',{batchId:AR.bid,rows:rows,mode:'VALIDASI'});
+   }).then(r=>{AR.parsing=false;if(!r.success)throw new Error(r.message);AR.val=r.data;arRender()})
+   .catch(e=>{AR.parsing=false;AR.file=null;toast(e.message||'Gagal membaca file','err');arRender()});
+  el.value='';
+};
+A.arpilih=()=>{const f=$('#ar-file');if(f)f.click()};
+A.arimport=()=>{
+  if(!AR.rows)return;const b=$('[data-a="arimport"]');if(b)b.disabled=true;
+  opW('arsipSimpan',{batchId:AR.bid,rows:AR.rows,mode:'SIMPAN',namaFile:AR.file}).then(r=>{
+    if(!r.success){toast(r.message,'err');if(b)b.disabled=false;return}
+    toast(r.message,'ok');AR.val=null;AR.rows=null;AR.file=null;arMuat(true);
+  });
+};
+A.artemplate=()=>{
+  muatXLSX().then(()=>{
+    const p=(AR.det&&AR.det.batch.periode)||today().slice(0,7);
+    const aoa=[['Tanggal','Jam','Jenis','Kategori','Logam','Kadar','Berat','Nominal','Metode','Pelanggan','No Nota','Catatan'],
+      [p+'-02','10:15','Penjualan','Cincin','Emas','875',3.5,8400000,'Tunai','Ibu Ani','N-0012',''],
+      [p+'-05','14:00','Buyback','Kalung','Emas','700',5.2,6240000,'Transfer','Bpk Yosef','B-0007',''],
+      [p+'-06','','Jasa','Jasa Patri','','','',50000,'Tunai','','',''],
+      [p+'-07','','Pengeluaran','Listrik & Air','','','',450000,'Tunai','','','Token listrik'],
+      [p+'-08','','Sedekah','Sedekah Jumat','','','',100000,'Tunai','','','']];
+    const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=[12,7,12,16,8,7,8,12,10,16,10,18].map(w=>({wch:w}));
+    const pt=XLSX.utils.aoa_to_sheet([['PETUNJUK ARSIP TRANSAKSI LAMA'],[''],['Tanggal','Format 2026-10-02 atau 02/10/2026, wajib di periode batch'],['Jenis','Penjualan / Buyback / Jasa / Pengeluaran / Sedekah'],
+      ['Logam & Berat','Wajib untuk Penjualan dan Buyback (Emas / Perak, berat dalam gram)'],['Nominal','Angka rupiah tanpa titik juga boleh, mis. 8400000'],['Duplikat','Baris yang sama persis dengan data yang sudah ada otomatis ditolak']]);
+    pt['!cols']=[{wch:16},{wch:70}];
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Transaksi');XLSX.utils.book_append_sheet(wb,pt,'Petunjuk');
+    XLSX.writeFile(wb,'Template-Arsip-Transaksi-'+p+'.xlsx');
+  }).catch(e=>toast(e.message,'err'));
+};
+A.artab=v=>{AR.tab=v;arRender()};
+A.arbuka=v=>arDetail(v);
+A.arkembali=()=>{AR.bid='';AR.det=null;AR.val=null;arMuat(true);arRender()};
+A.arperiode=()=>{
+  const p=($('#ar-per')||{}).value;if(!p)return toast('Pilih periode','err');AR.per=p;
+  opW('arsipBatchBuat',{periode:p,sumber:'MANUAL'}).then(r=>{if(!r.success)return toast(r.message,'err');toast(r.message,r.data&&r.data.ada?'':'ok');AR.bid=r.data.batchId;arMuat(true)});
+};
+A.arhapus=v=>{if(!confirm('Hapus baris '+v+'?'))return;opW('arsipHapusBaris',{arsipId:v}).then(r=>{toast(r.message,r.success?'ok':'err');arDetail(AR.bid,true)})};
+A.arbatchdel=()=>{if(!confirm('Hapus batch '+AR.bid+' beserta semua barisnya?'))return;opW('arsipBatchHapus',{batchId:AR.bid}).then(r=>{toast(r.message,r.success?'ok':'err');if(r.success){AR.bid='';AR.det=null;arMuat(true)}})};
+A.arajukan=()=>{opW('arsipAjukan',{batchId:AR.bid}).then(r=>{toast(r.message,r.success?'ok':'err');if(r.success&&r.data&&r.data.state)adopt(r.data.state);arMuat(true)})};
+A.arsetuju=()=>{
+  const b=AR.det&&AR.det.batch;if(!b)return;
+  if(!confirm('Setujui & KUNCI arsip '+blnNama(b.periode)+' ('+b.jumlah+' baris)?\n\nSetelah dikunci, data masuk ke laporan dan hanya bisa diubah lewat koreksi tercatat.'))return;
+  opW('arsipPutuskan',{batchId:b.batchId,keputusan:'SETUJU'}).then(r=>{toast(r.message,r.success?'ok':'err');if(r.success&&r.data&&r.data.state)adopt(r.data.state);LAPX={};ARX={};arMuat(true)});
+};
+A.artolak=()=>{
+  const al=prompt('Alasan penolakan (dikembalikan ke DRAFT):','');if(al===null)return;
+  opW('arsipPutuskan',{batchId:AR.bid,keputusan:'TOLAK',alasan:al}).then(r=>{toast(r.message,r.success?'ok':'err');if(r.success&&r.data&&r.data.state)adopt(r.data.state);arMuat(true)});
+};
+A.armulai=()=>openForm({title:'Tanggal Mulai Aplikasi',ok:'Simpan',fields:[{k:'tanggal',l:'Aplikasi POS mulai dipakai sejak',t:'date',req:1,v:AR.info.mulaiPOS,h:'Transaksi historis wajib sebelum tanggal ini.'}],
+  fn:v=>{opW('arsipMulaiPOS',{tanggal:v.tanggal}).then(r=>{toast(r.message,r.success?'ok':'err');arMuat(true)})}});
+A.arcopy=()=>{const u=arsipUrl();try{navigator.clipboard.writeText(u).then(()=>toast('Tautan disalin: '+u,'ok'))}catch(e){prompt('Salin tautan:',u)}};
+/* Koreksi periode terkunci */
+function F_arKoreksi(r,aksiAwal){
+  const b=AR.det.batch;let aksi=aksiAwal;
+  const isi=()=>'<form id="arkform" novalidate><div class="err hidden" id="ark-err"></div>'+
+    (r?'<div class="mini" style="margin-bottom:12px"><small class="mono">'+esc(r.arsipId)+'</small><div class="big">'+esc(jenisArs(r.jenis))+' · '+rp(r.nominal)+'</div><small>'+tgl(r.tanggalTransaksi)+'</small></div>'+
+      '<div class="seg fill" style="margin-bottom:12px"><button type="button" class="'+(aksi==='UBAH'?'on':'')+'" data-a="arkaksi" data-v="UBAH">'+ic('edit','s')+' Ubah</button><button type="button" class="'+(aksi==='HAPUS'?'on':'')+'" data-a="arkaksi" data-v="HAPUS">'+ic('trash','s')+' Hapus</button></div>':'')+
+    (aksi==='HAPUS'?'':arFields(b,r||{}))+
+    '<label class="fld"><span class="lb">Alasan koreksi * (tercatat permanen)</span><textarea class="inp" name="alasan" rows="2" placeholder="mis. nominal salah ketik dari buku kas lama"></textarea></label>'+
+    '<button class="btn pri blk" type="submit">'+(AR.info.isOwner?'Terapkan Koreksi':'Ajukan Koreksi ke Owner')+'</button></form>';
+  modal(r?'Koreksi Arsip '+blnNama(b.periode):'Tambah Data via Koreksi',isi());
+  A.arkaksi=v=>{aksi=v;const m=$('#arkform');if(m)m.outerHTML=isi()};
+  SUB.arkform=f=>{
+    const al=f.elements.alasan.value.trim(),er=$('#ark-err');
+    if(al.length<5){er.textContent='Alasan koreksi wajib diisi (min. 5 huruf).';er.classList.remove('hidden');return}
+    const p={aksi:aksi,alasan:al,arsipId:r?r.arsipId:'',batchId:b.batchId};if(aksi!=='HAPUS')p.data=arAmbil(f);
+    opW('arsipKoreksi',p).then(x=>{if(!x.success){er.textContent=x.message;er.classList.remove('hidden');return}
+      closeModal();toast(x.message,'ok');if(x.data&&x.data.state)adopt(x.data.state);LAPX={};ARX={};arMuat(true)});
+  };
+}
+A.arkor=v=>{const r=(AR.det.rows||[]).find(x=>x.arsipId===v);if(r)F_arKoreksi(r,'UBAH')};
+A.arkortambah=()=>F_arKoreksi(null,'TAMBAH');
+
+P.migrasi=function(){
+  const o=isO();if(!o)MT='arsip';
+  const tab='<div class="seg fill" style="margin-bottom:16px"><button class="'+(MT==='arsip'?'on':'')+'" data-a="mtab" data-v="arsip">'+ic('history','s')+' Arsip Transaksi Lama</button>'+(o?'<button class="'+(MT==='db'?'on':'')+'" data-a="mtab" data-v="db">'+ic('database','s')+' Migrasi Database</button>':'')+'</div>';
+  if(MT==='db'&&o)return P_migrasiDb().replace(/^(<div class="ph">[\s\S]*?<\/p><\/div><\/div>)/,'$1'+tab);
+  return '<div class="ph"><div><h1>Migrasi Data &amp; Arsip Transaksi</h1><p>Masukkan transaksi bulan-bulan sebelumnya tanpa mengganggu kasir, kas, dan stok hari ini.</p></div></div>'+tab+arTab();
+};
+A.mtab=v=>{MT=v;RJ='';render()};
 
 /* ============ PENGATURAN ============ */
 P.pengaturan=function(){
@@ -4750,7 +5083,7 @@ A.crmexp=()=>op('crmExport',{}).then(r=>{if(!r.success)return toast(r.message,'e
    ===================================================================== */
 const MG={sumber:'sheet',src:'',backup:null,backupNama:'',sheets:{Users:true,Transaksi:true,MutasiKas:true,TutupKas:true,MutasiBrankas:true,MutasiBank:true,StokLog:true,Absensi:true,Izin:true,Approval:true,Piutang:true,Pinjaman:true,PesanKaryawan:true},timpa:false,hasil:null,busy:false};
 const MG_LBL={Users:'Akun karyawan',Transaksi:'Transaksi / nota',MutasiKas:'Mutasi kas laci',TutupKas:'Tutup kas',MutasiBrankas:'Mutasi brankas',MutasiBank:'Mutasi bank',StokLog:'Riwayat stok',Absensi:'Absensi',Izin:'Izin / cuti',Approval:'Persetujuan',Piutang:'Piutang & hutang',Pinjaman:'Pinjaman',PesanKaryawan:'Pesan karyawan'};
-P.migrasi=function(){
+P_migrasiDb=function(){
   const h=MG.hasil;
   return '<div class="ph"><div><h1>Migrasi Data</h1><p>Pindahkan data dari aplikasi lama tanpa menyentuh aplikasi lama. Aman diulang: data yang sama tidak akan dobel.</p></div></div>'+
    '<div class="grid dash2"><div class="card">'+
@@ -4844,7 +5177,7 @@ function init(){
     if(tk&&snap){
       try{
         TOKEN=tk;try{Q=JSON.parse(LS.g('pos_q')||'[]')}catch(e){Q=[]}
-        showApp();adopt(JSON.parse(snap));RJ='';go('dashboard');startPolling();loadStateSoon();
+        showApp();adopt(JSON.parse(snap));RJ='';go(halAwal());startPolling();loadStateSoon();
       }catch(e){TOKEN=null;showLogin()}
     }else showLogin();
   }catch(e){

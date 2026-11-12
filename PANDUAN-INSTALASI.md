@@ -1,6 +1,23 @@
-# Panduan Instalasi — Putri Bali POS v3.6
+# Panduan Instalasi — Putri Bali POS v3.7
 
-> **Update ke v3.6** (email notifikasi Owner, tambah kas laci, kamera absensi, login Gmail):
+> **Update ke v3.7** (tutup kas selisih, Arsip Transaksi Lama, filter rekap):
+> 1. Apps Script: ganti seluruh isi **Kode.gs** dan **Notifikasi.gs**, lalu **tambah berkas baru**: tombol **+** di samping *Files* → *Script* → beri nama **Arsip** → tempel isi **Arsip.gs**. Simpan → **Deploy → Manage deployments → ✏️ → New version → Deploy**. Tanpa setup ulang (sheet ArsipBatch, ArsipTransaksi, ArsipKoreksi dibuat otomatis).
+> 2. Frontend: salin isi ZIP ke repo (**pertahankan `js/config.js`**). Ada berkas/folder baru: `ArsipTransaksi/index.html` dan `404.html` — ikut di-push.
+> 3. Buka **Menu → Migrasi Data & Arsip Transaksi → Arsip Transaksi Lama → Ubah** dan isi **tanggal aplikasi mulai dipakai** (mis. 1 Nov 2026).
+>
+> **Cara pakai Arsip Transaksi Lama** (alamat langsung: `https://dahnial.github.io/EMAS-POS/ArsipTransaksi`)
+> 1. **Pilih periode** (bulan sebelum aplikasi dipakai) → *Buka / Buat Batch*.
+> 2. **Input Manual** per baris, atau **Import Excel**: tekan *Unduh Template Excel*, isi, lalu *Pilih File*. Sistem menampilkan **validasi** (valid / duplikat / salah) sebelum menyimpan; hanya baris valid yang disimpan.
+> 3. Kasir menekan **Ajukan ke Owner**; Owner menekan **Setujui & Kunci** (atau dari Pusat Persetujuan). Setelah dikunci, data masuk ke Laporan bulan tersebut & laporan tahunan.
+> 4. Periode terkunci hanya bisa diubah lewat tombol **Koreksi** (wajib alasan). Semua koreksi tercatat; koreksi dari kasir menunggu persetujuan Owner.
+> - Arsip **tidak** masuk ke transaksi kasir, kas laci, brankas, bank, maupun stok. Tanggal transaksi asli dipisah dari tanggal input. Setiap baris punya ID unik (HIS-…) dan ID batch (MIG-…); data yang sama diimpor dua kali otomatis ditolak.
+>
+> **Tutup kas:** bila uang fisik berbeda dari sistem, aplikasi meminta **hitung ulang**. Setelah dicek dan ditekan *Sudah Dicek, Simpan*, selisih dicatat dan saldo laci berikutnya mengikuti uang fisik.
+>
+> **Laporan:** pilih Hari ini / 7 hari / Bulan ini / Bulan lalu / Tahun ini, pilih bulan atau tahun, lalu buka **Filter Rekapan** (jenis transaksi, sumber data Operasional/Historis, logam, kadar, kasir, metode bayar, kata kunci). Daftar transaksi hasil filter tampil di bagian bawah.
+
+
+> **Riwayat: update ke v3.6** (email notifikasi Owner, tambah kas laci, kamera absensi, login Gmail):
 > 1. Apps Script: ganti seluruh isi **Kode.gs** dan **Notifikasi.gs** → **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**. Tanpa setup ulang.
 > 2. Frontend: salin isi ZIP ke repo (**pertahankan `js/config.js`**) → push → tutup–buka aplikasi di semua HP/PC.
 > 3. **Login sekali sebagai Owner** setelah update: email notifikasi Owner otomatis diaktifkan dan pekerja latar pengirim email dipasang.

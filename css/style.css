@@ -2148,3 +2148,60 @@ code, .mono, .tm small { overflow-wrap: anywhere; }
 .gt-row .tag { flex: 0 0 auto; }
 .gt-row span:last-child { overflow-wrap: anywhere; min-width: 0; }
 @media (max-width: 899px) { .tk-card .hd { flex-wrap: wrap; gap: 10px; } .tk-card .hd .btn { width: 100%; justify-content: center; } }
+
+/* ============ v3.7 — tutup kas selisih, arsip transaksi lama, filter rekap ============ */
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sel-box { display: flex; gap: 12px; align-items: center; border-radius: 16px; padding: 14px; margin-bottom: 12px; }
+.sel-box.kurang { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.sel-box.lebih { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.sel-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.7); flex: 0 0 auto; }
+.sel-box small { display: block; font-weight: 600; }
+.sel-big { font-size: 26px; font-weight: 800; line-height: 1.15; }
+.sel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sel-grid .mini b { display: block; font-size: 16px; }
+.sel-act { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 6px; }
+.sel-act .btn { justify-content: center; }
+.ar-meta { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; }
+.ar-meta .mini { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ar-meta .mini .btn { align-self: flex-start; }
+.ar-url { overflow-wrap: anywhere; font-size: 12.5px; }
+.ar-per { border: 1px solid var(--ln); border-radius: 14px; padding: 10px; margin-bottom: 10px; }
+.ar-per-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ar-per > small { color: var(--mut); font-size: 12px; }
+.ar-batch { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--cv); border: 0; border-radius: 10px; padding: 8px 10px; margin-top: 8px; cursor: pointer; font: inherit; color: inherit; }
+.ar-batch .tm { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ar-batch .tm small { color: var(--mut); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ar-batch .tm b { font-size: 12.5px; }
+.ar-bh { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin: 10px 0 12px; }
+.ar-bh h2 { margin: 0; font-size: 22px; }
+.ar-bh small { color: var(--mut); }
+.ar-aksi { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.ar-aksi .btn { flex: 1 1 160px; justify-content: center; }
+.ar-row .ar-id, .his-row .ta small { display: block; color: var(--mut); font-size: 10.5px; }
+.ar-row.ar-del { opacity: .5; }
+.ar-row.ar-del .tm b { text-decoration: line-through; }
+.ar-row .btn.xs { flex: 0 0 auto; margin-left: 6px; }
+.ar-vrow.bad { background: #fff7f7; border-radius: 10px; }
+.ar-why { display: block; color: var(--bad); font-size: 12px; white-space: normal !important; }
+.his-tag { font-size: 9.5px !important; padding: 1px 6px !important; background: #e2e8f0 !important; color: #334155 !important; vertical-align: middle; }
+.rf-card { margin-bottom: 4px; }
+.rf-pre { margin-bottom: 10px; }
+.rf-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rf-grid .fld { margin: 0; }
+.rf-box { margin-top: 12px; border-top: 1px solid var(--ln); padding-top: 10px; }
+.rf-box summary { cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; list-style: none; }
+.rf-box summary::-webkit-details-marker { display: none; }
+.rf-box .rf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 10px; }
+.rf-jenis .btn { min-height: 32px; }
+.rf-info { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+@media (max-width: 899px) {
+  .row3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ar-meta { grid-template-columns: 1fr; }
+  .rf-grid, .rf-box .rf-grid { grid-template-columns: 1fr 1fr; }
+  .rf-pre { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .rf-pre .btn { flex: 0 0 auto; }
+  .sel-big { font-size: 22px; }
+}
+.rf-grid .inp, .rf-grid select { width: 100%; min-width: 0; max-width: 100%; }
+.his-row .meta .his-tag { margin-right: 4px; }
+.rf-grid > * { min-width: 0; } .rf-grid input[type=date], .rf-grid input[type=month] { box-sizing: border-box; min-width: 0; width: 100%; font-size: 14px; padding-left: 10px; padding-right: 6px; }
